@@ -1,0 +1,72 @@
+services:
+  # Servizio per eseguire i test
+  test:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: statemachine-test
+    volumes:
+      - ..:/home/ubuntu/workspace
+      - maven-cache:/root/.m2
+    command: mvn test
+    environment:
+      - MAVEN_OPTS=-Xmx512m
+
+  # Servizio per ambiente di sviluppo interattivo
+  dev:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: statemachine-dev
+    volumes:
+      - ..:/home/ubuntu/workspace
+      - maven-cache:/root/.m2
+    command: tail -f /dev/null
+    stdin_open: true
+    tty: true
+    environment:
+      - MAVEN_OPTS=-Xmx512m
+
+  # Servizio per eseguire test specifici
+  test-single:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: statemachine-test-single
+    volumes:
+      - ..:/home/ubuntu/workspace
+      - maven-cache:/root/.m2
+    environment:
+      - MAVEN_OPTS=-Xmx512m
+      - TEST_CLASS=${TEST_CLASS:-StateMachineTest}
+    command: mvn test -Dtest=${TEST_CLASS}
+
+  # Servizio per generare report di copertura
+  coverage:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: statemachine-coverage
+    volumes:
+      - ..:/home/ubuntu/workspace
+      - maven-cache:/root/.m2
+    command: mvn clean test jacoco:report
+    environment:
+      - MAVEN_OPTS=-Xmx512m
+
+  # Servizio per build del progetto
+  build:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: statemachine-build
+    volumes:
+      - ..:/home/ubuntu/workspace
+      - maven-cache:/root/.m2
+    command: mvn clean package
+    environment:
+      - MAVEN_OPTS=-Xmx512m
+
+volumes:
+  maven-cache:
+    name: statemachine-maven-cache
