@@ -7,19 +7,19 @@
 # - Multiple owners: @user1 @org/team1 @user2
 
 # Default owners for everything in the repo
-* @disionira/opensource/controbutors
+* @disionira/opensource_controbutors
 
 # Specific ownership for different parts of the project
 
 # Source code - requires review from contributors team
-/src/ @disionira/opensource/controbutors
+/src/ @disionira/opensource_controbutors
 
 # Tests - requires review from contributors team
-/test/ @disionira/opensource/controbutors
+/test/ @disionira/opensource_controbutors
 
 # Documentation - can be reviewed by any contributor
-*.md @disionira/opensource/controbutors
-/docs/ @disionira/opensource/controbutors
+*.md @disionira/opensource_controbutors
+/docs/ @disionira/opensource_controbutors
 
 # CI/CD workflows - requires review from devops team
 /.github/workflows/ @disionira/devops
