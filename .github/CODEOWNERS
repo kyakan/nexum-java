@@ -1,0 +1,32 @@
+# Code Owners for StateMachine Project
+# These owners will be automatically requested for review when someone opens a pull request.
+#
+# Syntax:
+# - Individual users: @username
+# - Teams: @org-name/team-name
+# - Multiple owners: @user1 @org/team1 @user2
+
+# Default owners for everything in the repo
+* @disionira/disionira_os_contributors
+
+# Specific ownership for different parts of the project
+
+# Source code - requires review from contributors team
+/src/ @disionira/disionira_os_contributors
+
+# Tests - requires review from contributors team
+/test/ @disionira/disionira_os_contributors
+
+# Documentation - can be reviewed by any contributor
+*.md @disionira/disionira_os_contributors
+/docs/ @disionira/disionira_os_contributors
+
+# CI/CD workflows - requires review from devops team
+/.github/workflows/ @disionira/disionira_os_devops
+
+# GitHub configuration - requires review from devops team
+/.github/ @disionira/disionira_os_devops
+
+# Build configuration - requires review from devops team
+pom.xml @disionira/disionira_os_devops
+/docker/ @disionira/disionira_os_devops

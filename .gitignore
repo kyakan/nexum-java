@@ -23,4 +23,60 @@
 hs_err_pid*
 replay_pid*
 
-target/*
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# IDE - IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# IDE - Eclipse
+.classpath
+.project
+.settings/
+bin/
+
+# IDE - VS Code
+.vscode/
+*.code-workspace
+
+# IDE - NetBeans
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Test output
+*.log
+test-output/
+
+# Sensitive files
+credentials.json
+env.properties
+.ssh/*
+!.ssh/README.md
+config.properties
+apikeys.properties
+apikeys.json
+secrets.properties
+secrets.json
+local.properties
+
