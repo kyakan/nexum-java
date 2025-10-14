@@ -3,94 +3,133 @@ name: Release
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - 'v*' # Trigger su tag che iniziano con v (es. v1.0.0)
+
+env:
+  JAVA_VERSION: '11'
+  MAVEN_OPTS: "-Xmx1024m"
 
 jobs:
-  release:
+  build:
+    name: Build and Release
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    
-    - name: Set up JDK 11
-      uses: actions/setup-java@v4
-      with:
-        java-version: '11'
-        distribution: 'temurin'
-        cache: 'maven'
-    
-    - name: Extract version from tag
-      id: version
-      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-    
-    - name: Update pom.xml version
-      run: |
-        mvn versions:set -DnewVersion=${{ steps.version.outputs.VERSION }}
-        mvn versions:commit
-    
-    - name: Build and package
-      run: mvn -B clean package
-    
-    - name: Run tests
-      run: mvn -B test
-    
-    - name: Generate changelog
-      id: changelog
-      run: |
-        # Get the previous tag
-        PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
-        
-        if [ -z "$PREV_TAG" ]; then
-          # First release - get all commits
-          CHANGELOG=$(git log --pretty=format:"- %s (%h)" --no-merges)
-        else
-          # Get commits since previous tag
-          CHANGELOG=$(git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges)
-        fi
-        
-        # Save changelog to file
-        echo "$CHANGELOG" > CHANGELOG.txt
-        
-        # Also save to output (escape newlines)
-        echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
-        echo "$CHANGELOG" >> $GITHUB_OUTPUT
-        echo "EOF" >> $GITHUB_OUTPUT
-    
-    - name: Create Release
-      uses: softprops/action-gh-release@v1
-      with:
-        name: Release v${{ steps.version.outputs.VERSION }}
-        body: |
-          ## 🚀 Release v${{ steps.version.outputs.VERSION }}
-          
-          ### 📦 Artifacts
-          - `state-machine-${{ steps.version.outputs.VERSION }}.jar` - Main library JAR
-          
-          ### 📝 Changelog
-          ${{ steps.changelog.outputs.CHANGELOG }}
-          
-          ### 📥 Installation
-          
-          **Maven:**
-          ```xml
-          <dependency>
-              <groupId>it.disionira</groupId>
-              <artifactId>state-machine</artifactId>
-              <version>${{ steps.version.outputs.VERSION }}</version>
-          </dependency>
-          ```
-          
-          **Manual:**
-          Download the JAR file from the assets below and add it to your project's classpath.
-        files: |
-          target/state-machine-${{ steps.version.outputs.VERSION }}.jar
-        draft: false
-        prerelease: false
-        generate_release_notes: true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build with Maven
+        run: mvn -B clean package
+
+      - name: Generate changelog
+        id: changelog
+        uses: mikepenz/release-changelog-builder-action@v3
+        with:
+          configuration: |
+            {
+              "categories": [
+                {
+                  "title": "🚀 Features",
+                  "labels": ["feature", "enhancement"]
+                },
+                {
+                  "title": "🐛 Bug Fixes",
+                  "labels": ["bug", "fix"]
+                },
+                {
+                  "title": "🧰 Maintenance",
+                  "labels": ["chore", "dependencies", "refactor"]
+                },
+                {
+                  "title": "📝 Documentation",
+                  "labels": ["documentation"]
+                }
+              ]
+            }
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          body: |
+            ## StateMachine ${{ github.ref_name }}
+
+            ${{ steps.changelog.outputs.changelog }}
+
+            ### Artefatti
+            - JAR principale: `state-machine-${{ github.ref_name }}.jar`
+            - Javadoc: `state-machine-${{ github.ref_name }}-javadoc.jar`
+            - Sources: `state-machine-${{ github.ref_name }}-sources.jar`
+
+            ### Istruzioni
+            ```bash
+            # Aggiungere come dipendenza Maven
+            <dependency>
+                <groupId>it.disionira</groupId>
+                <artifactId>state-machine</artifactId>
+                <version>${{ github.ref_name }}</version>
+            </dependency>
+            ```
+
+            ### Note
+            - Compatibile con Java 11+
+            - Nessuna dipendenza esterna
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}
+
+      - name: Upload Release Assets
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: target/state-machine-${{ github.ref_name }}.jar
+          asset_name: state-machine-${{ github.ref_name }}.jar
+          asset_content_type: application/java-archive
+
+      - name: Generate and Upload Javadoc
+        run: |
+          mvn javadoc:jar
+          mv target/state-machine-${{ github.ref_name }}-javadoc.jar target/state-machine-${{ github.ref_name }}-javadoc.jar.tmp
+          zip -r target/state-machine-${{ github.ref_name }}-javadoc.jar target/apidocs
+
+      - name: Upload Javadoc Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: target/state-machine-${{ github.ref_name }}-javadoc.jar
+          asset_name: state-machine-${{ github.ref_name }}-javadoc.jar
+          asset_content_type: application/zip
+
+      - name: Generate and Upload Sources
+        run: mvn source:jar
+
+      - name: Upload Sources Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: target/state-machine-${{ github.ref_name }}-sources.jar
+          asset_name: state-machine-${{ github.ref_name }}-sources.jar
+          asset_content_type: application/java-archive
+
+      - name: Publish to GitHub Packages
+        run: mvn deploy -DskipTests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
