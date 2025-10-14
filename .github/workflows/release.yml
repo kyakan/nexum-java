@@ -135,6 +135,6 @@ jobs:
           asset_content_type: application/java-archive
 
       - name: Publish to GitHub Packages
-        run: mvn deploy -DskipTests
+        run: mvn deploy -DskipTests -Dgpg.skip=true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
