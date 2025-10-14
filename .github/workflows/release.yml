@@ -28,6 +28,13 @@ jobs:
       - name: Build with Maven
         run: mvn -B clean package
 
+      - name: Get tag version
+        id: get_version
+        run: |
+          # Estrae la versione dal tag (rimuove il prefisso 'v')
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
       - name: Generate changelog
         id: changelog
         uses: mikepenz/release-changelog-builder-action@v3
@@ -58,29 +65,26 @@ jobs:
 
       - name: Create GitHub Release
         id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
-          release_name: Release ${{ github.ref_name }}
+          name: Release ${{ steps.get_version.outputs.version }}
           body: |
-            ## StateMachine ${{ github.ref_name }}
+            ## StateMachine ${{ steps.get_version.outputs.version }}
 
             ${{ steps.changelog.outputs.changelog }}
 
             ### Artefatti
-            - JAR principale: `state-machine-${{ github.ref_name }}.jar`
-            - Javadoc: `state-machine-${{ github.ref_name }}-javadoc.jar`
-            - Sources: `state-machine-${{ github.ref_name }}-sources.jar`
+            - JAR principale: `state-machine-${{ steps.get_version.outputs.version }}.jar`
+            - Javadoc: `state-machine-${{ steps.get_version.outputs.version }}-javadoc.jar`
+            - Sources: `state-machine-${{ steps.get_version.outputs.version }}-sources.jar`
 
             ### Istruzioni
-            ```bash
-            # Aggiungere come dipendenza Maven
+            ```xml
             <dependency>
                 <groupId>it.disionira</groupId>
                 <artifactId>state-machine</artifactId>
-                <version>${{ github.ref_name }}</version>
+                <version>${{ steps.get_version.outputs.version }}</version>
             </dependency>
             ```
 
@@ -89,6 +93,7 @@ jobs:
             - Nessuna dipendenza esterna
           draft: false
           prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}
+          generate_release_notes: false
 
       - name: Upload Release Assets
         uses: actions/upload-release-asset@v1
@@ -96,15 +101,15 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: target/state-machine-${{ github.ref_name }}.jar
-          asset_name: state-machine-${{ github.ref_name }}.jar
+          asset_path: target/state-machine-${{ steps.get_version.outputs.version }}.jar
+          asset_name: state-machine-${{ steps.get_version.outputs.version }}.jar
           asset_content_type: application/java-archive
 
       - name: Generate and Upload Javadoc
         run: |
           mvn javadoc:jar
-          mv target/state-machine-${{ github.ref_name }}-javadoc.jar target/state-machine-${{ github.ref_name }}-javadoc.jar.tmp
-          zip -r target/state-machine-${{ github.ref_name }}-javadoc.jar target/apidocs
+          mv target/state-machine-${{ steps.get_version.outputs.version }}-javadoc.jar target/state-machine-${{ steps.get_version.outputs.version }}-javadoc.jar.tmp
+          zip -r target/state-machine-${{ steps.get_version.outputs.version }}-javadoc.jar target/apidocs
 
       - name: Upload Javadoc Asset
         uses: actions/upload-release-asset@v1
@@ -112,8 +117,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: target/state-machine-${{ github.ref_name }}-javadoc.jar
-          asset_name: state-machine-${{ github.ref_name }}-javadoc.jar
+          asset_path: target/state-machine-${{ steps.get_version.outputs.version }}-javadoc.jar
+          asset_name: state-machine-${{ steps.get_version.outputs.version }}-javadoc.jar
           asset_content_type: application/zip
 
       - name: Generate and Upload Sources
@@ -125,8 +130,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: target/state-machine-${{ github.ref_name }}-sources.jar
-          asset_name: state-machine-${{ github.ref_name }}-sources.jar
+          asset_path: target/state-machine-${{ steps.get_version.outputs.version }}-sources.jar
+          asset_name: state-machine-${{ steps.get_version.outputs.version }}-sources.jar
           asset_content_type: application/java-archive
 
       - name: Publish to GitHub Packages
