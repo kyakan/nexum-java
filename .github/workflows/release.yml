@@ -135,6 +135,6 @@ jobs:
           asset_content_type: application/java-archive
 
       - name: Publish to GitHub Packages
-        run: mvn deploy -DskipTests -Dgpg.skip=true
+        run: mvn deploy -DskipTests -Dgpg.skip=true -DaltDeploymentRepository=github::default::https://maven.pkg.github.com/${{ github.repository }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
