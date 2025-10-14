@@ -134,6 +134,10 @@ jobs:
           asset_name: state-machine-${{ steps.get_version.outputs.version }}-sources.jar
           asset_content_type: application/java-archive
 
+      - name: Replace repository URL placeholder
+        run: |
+          sed -i "s|https://maven.pkg.github.com/REPO_PLACEHOLDER|https://maven.pkg.github.com/${{ github.repository }}|g" pom.xml
+
       - name: Publish to GitHub Packages
         run: mvn deploy -DskipTests -Dgpg.skip=true
         env:
