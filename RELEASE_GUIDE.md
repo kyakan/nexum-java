@@ -57,9 +57,9 @@ La release creata automaticamente includerà:
    - Note sulla compatibilità
 
 2. **Artefatti**:
-   - `state-machine-{version}.jar` - JAR principale
-   - `state-machine-{version}-javadoc.jar` - Documentazione Javadoc
-   - `state-machine-{version}-sources.jar` - Codice sorgente
+   - `nexum-{version}.jar` - JAR principale
+   - `nexum-{version}-javadoc.jar` - Documentazione Javadoc
+   - `nexum-{version}-sources.jar` - Codice sorgente
 
 ## Tipi di Release
 
@@ -120,15 +120,15 @@ v1.0.0
 - Risolto bug nella gestione degli errori
 
 ### Artefatti
-- JAR principale: state-machine-1.0.0.jar
-- Javadoc: state-machine-1.0.0-javadoc.jar
-- Sources: state-machine-1.0.0-sources.jar
+- JAR principale: nexum-1.0.0.jar
+- Javadoc: nexum-1.0.0-javadoc.jar
+- Sources: nexum-1.0.0-sources.jar
 
 ### Istruzioni
 ```xml
 <dependency>
-    <groupId>it.disionira</groupId>
-    <artifactId>state-machine</artifactId>
+    <groupId>it.kyakan</groupId>
+    <artifactId>nexum</artifactId>
     <version>1.0.0</version>
 </dependency>
 ```

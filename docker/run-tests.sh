@@ -71,7 +71,7 @@ case $choice in
     5)
         echo -e "${GREEN}Building progetto...${NC}"
         docker-compose up build
-        echo -e "${GREEN}JAR creato in: ../target/state-machine-1.0.0.jar${NC}"
+        echo -e "${GREEN}JAR creato in: ../target/nexum-1.0.0.jar${NC}"
         ;;
     6)
         echo -e "${RED}Pulendo container, immagini e volumi...${NC}"

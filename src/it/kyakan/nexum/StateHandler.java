@@ -1,4 +1,4 @@
-package it.disionira.sm;
+package it.kyakan.nexum;
 
 /**
  * Interface for handling state-specific logic.

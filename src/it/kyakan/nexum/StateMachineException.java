@@ -1,4 +1,4 @@
-package it.disionira.sm;
+package it.kyakan.nexum;
 
 /**
  * Exception thrown when state machine operations fail.

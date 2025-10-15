@@ -1,4 +1,4 @@
-package it.disionira.sm;
+package it.kyakan.nexum;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;

@@ -54,7 +54,7 @@ docker-compose up coverage
 cd docker
 docker-compose up build
 
-# JAR will be in: ../target/state-machine-1.0.0.jar
+# JAR will be in: ../target/nexum-1.0.0.jar
 ```
 
 ## Quick Commands
@@ -170,7 +170,7 @@ docker-compose up coverage
 ```bash
 cd docker
 docker-compose up build
-# JAR in: ../target/state-machine-1.0.0.jar
+# JAR in: ../target/nexum-1.0.0.jar
 ```
 
 ## Troubleshooting

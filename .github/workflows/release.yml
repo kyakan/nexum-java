@@ -75,15 +75,15 @@ jobs:
             ${{ steps.changelog.outputs.changelog }}
 
             ### Artefatti
-            - JAR principale: `state-machine-${{ steps.get_version.outputs.version }}.jar`
-            - Javadoc: `state-machine-${{ steps.get_version.outputs.version }}-javadoc.jar`
-            - Sources: `state-machine-${{ steps.get_version.outputs.version }}-sources.jar`
+            - JAR principale: `gsm-${{ steps.get_version.outputs.version }}.jar`
+            - Javadoc: `gsm-${{ steps.get_version.outputs.version }}-javadoc.jar`
+            - Sources: `gsm-${{ steps.get_version.outputs.version }}-sources.jar`
 
             ### Istruzioni
             ```xml
             <dependency>
-                <groupId>it.disionira</groupId>
-                <artifactId>state-machine</artifactId>
+                <groupId>it.kyakan</groupId>
+                <artifactId>gsm</artifactId>
                 <version>${{ steps.get_version.outputs.version }}</version>
             </dependency>
             ```
@@ -104,15 +104,15 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: target/state-machine-${{ steps.get_version.outputs.version }}.jar
-          asset_name: state-machine-${{ steps.get_version.outputs.version }}.jar
+          asset_path: target/gsm-${{ steps.get_version.outputs.version }}.jar
+          asset_name: gsm-${{ steps.get_version.outputs.version }}.jar
           asset_content_type: application/java-archive
 
       - name: Generate and Upload Javadoc
         run: |
           mvn javadoc:jar
-          mv target/state-machine-${{ steps.get_version.outputs.version }}-javadoc.jar target/state-machine-${{ steps.get_version.outputs.version }}-javadoc.jar.tmp
-          zip -r target/state-machine-${{ steps.get_version.outputs.version }}-javadoc.jar target/apidocs
+          mv target/gsm-${{ steps.get_version.outputs.version }}-javadoc.jar target/gsm-${{ steps.get_version.outputs.version }}-javadoc.jar.tmp
+          zip -r target/gsm-${{ steps.get_version.outputs.version }}-javadoc.jar target/apidocs
 
       - name: Upload Javadoc Asset
         uses: actions/upload-release-asset@v1
@@ -120,8 +120,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: target/state-machine-${{ steps.get_version.outputs.version }}-javadoc.jar
-          asset_name: state-machine-${{ steps.get_version.outputs.version }}-javadoc.jar
+          asset_path: target/gsm-${{ steps.get_version.outputs.version }}-javadoc.jar
+          asset_name: gsm-${{ steps.get_version.outputs.version }}-javadoc.jar
           asset_content_type: application/zip
 
       - name: Generate and Upload Sources
@@ -133,8 +133,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: target/state-machine-${{ steps.get_version.outputs.version }}-sources.jar
-          asset_name: state-machine-${{ steps.get_version.outputs.version }}-sources.jar
+          asset_path: target/gsm-${{ steps.get_version.outputs.version }}-sources.jar
+          asset_name: gsm-${{ steps.get_version.outputs.version }}-sources.jar
           asset_content_type: application/java-archive
 
       - name: Publish to GitHub Packages

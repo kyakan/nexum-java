@@ -1,4 +1,4 @@
-package it.disionira.sm;
+package it.kyakan.nexum;
 
 /**
  * Represents a state transition in the state machine.

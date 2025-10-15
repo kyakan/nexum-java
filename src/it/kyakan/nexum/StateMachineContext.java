@@ -1,4 +1,4 @@
-package it.disionira.sm;
+package it.kyakan.nexum;
 
 import java.util.HashMap;
 import java.util.Map;
