@@ -135,6 +135,6 @@ jobs:
           asset_content_type: application/java-archive
 
       - name: Publish to GitHub Packages
-        run: mvn deploy -DskipTests -Dgpg.skip=true -DaltDeploymentRepository=github::default::https://maven.pkg.github.com/${{ github.repository }}
+        run: mvn deploy -DskipTests -Dgpg.skip=true -DaltDeploymentRepository=github::default::https://maven.pkg.github.com/disionira/gsm-java
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
