@@ -191,7 +191,7 @@ mvn test jacoco:report
 ### Test Structure
 
 ```
-test/it/disionira/nexum/
+test/it/kyakan/nexum/
 ├── NexumContextTest.java      # Tests for context management
 ├── TransitionTest.java                # Tests for transitions
 ├── NexumTest.java              # Tests for state machine

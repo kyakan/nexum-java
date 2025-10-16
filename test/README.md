@@ -5,7 +5,7 @@ This directory contains comprehensive unit and integration tests for the Nexum l
 ## Test Structure
 
 ```
-test/it/disionira/nexum/
+test/it/kyakan/nexum/
 ├── NexumContextTest.java      # Tests for context management
 ├── TransitionTest.java                # Tests for transitions
 ├── NexumTest.java              # Tests for state machine core
