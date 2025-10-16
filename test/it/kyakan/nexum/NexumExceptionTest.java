@@ -1,4 +1,4 @@
-package it.disionira.sm;
+package it.kyakan.nexum;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
@@ -6,10 +6,10 @@ import org.junit.jupiter.api.DisplayName;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Unit tests for StateMachineException
+ * Unit tests for NexumException
  */
-@DisplayName("StateMachineException Tests")
-class StateMachineExceptionTest {
+@DisplayName("NexumException Tests")
+class NexumExceptionTest {
     
     private enum TestState {
         IDLE, RUNNING
@@ -22,7 +22,7 @@ class StateMachineExceptionTest {
     @Test
     @DisplayName("Should create exception with message only")
     void testMessageOnlyConstructor() {
-        StateMachineException exception = new StateMachineException("Test error");
+        NexumException exception = new NexumException("Test error");
         
         assertEquals("Test error", exception.getMessage());
         assertNull(exception.getCurrentState());
@@ -34,7 +34,7 @@ class StateMachineExceptionTest {
     @DisplayName("Should create exception with message and cause")
     void testMessageAndCauseConstructor() {
         RuntimeException cause = new RuntimeException("Root cause");
-        StateMachineException exception = new StateMachineException("Test error", cause);
+        NexumException exception = new NexumException("Test error", cause);
         
         assertEquals("Test error", exception.getMessage());
         assertEquals(cause, exception.getCause());
@@ -45,8 +45,8 @@ class StateMachineExceptionTest {
     @Test
     @DisplayName("Should create exception with state and event context")
     void testStateAndEventConstructor() {
-        StateMachineException exception = 
-            new StateMachineException("Test error", TestState.IDLE, TestEvent.START);
+        NexumException exception = 
+            new NexumException("Test error", TestState.IDLE, TestEvent.START);
         
         assertTrue(exception.getMessage().contains("Test error"));
         assertTrue(exception.getMessage().contains("state=IDLE"));
@@ -59,8 +59,8 @@ class StateMachineExceptionTest {
     @DisplayName("Should create exception with full context")
     void testFullContextConstructor() {
         RuntimeException cause = new RuntimeException("Root cause");
-        StateMachineException exception = 
-            new StateMachineException("Test error", cause, TestState.RUNNING, TestEvent.STOP);
+        NexumException exception = 
+            new NexumException("Test error", cause, TestState.RUNNING, TestEvent.STOP);
         
         assertTrue(exception.getMessage().contains("Test error"));
         assertTrue(exception.getMessage().contains("state=RUNNING"));
@@ -73,8 +73,8 @@ class StateMachineExceptionTest {
     @Test
     @DisplayName("Should format message with state only")
     void testMessageWithStateOnly() {
-        StateMachineException exception = 
-            new StateMachineException("Error occurred", TestState.IDLE, null);
+        NexumException exception = 
+            new NexumException("Error occurred", TestState.IDLE, null);
         
         String message = exception.getMessage();
         assertTrue(message.contains("Error occurred"));
@@ -85,8 +85,8 @@ class StateMachineExceptionTest {
     @Test
     @DisplayName("Should format message with event only")
     void testMessageWithEventOnly() {
-        StateMachineException exception = 
-            new StateMachineException("Error occurred", null, TestEvent.START);
+        NexumException exception = 
+            new NexumException("Error occurred", null, TestEvent.START);
         
         String message = exception.getMessage();
         assertTrue(message.contains("Error occurred"));
@@ -97,8 +97,8 @@ class StateMachineExceptionTest {
     @Test
     @DisplayName("Should handle null state and event gracefully")
     void testNullStateAndEvent() {
-        StateMachineException exception = 
-            new StateMachineException("Error occurred", null, null);
+        NexumException exception = 
+            new NexumException("Error occurred", null, null);
         
         assertEquals("Error occurred", exception.getMessage());
         assertNull(exception.getCurrentState());
@@ -108,8 +108,8 @@ class StateMachineExceptionTest {
     @Test
     @DisplayName("Should be throwable")
     void testThrowable() {
-        assertThrows(StateMachineException.class, () -> {
-            throw new StateMachineException("Test exception");
+        assertThrows(NexumException.class, () -> {
+            throw new NexumException("Test exception");
         });
     }
     
@@ -117,7 +117,7 @@ class StateMachineExceptionTest {
     @DisplayName("Should preserve cause stack trace")
     void testCauseStackTrace() {
         RuntimeException cause = new RuntimeException("Root cause");
-        StateMachineException exception = new StateMachineException("Wrapper", cause);
+        NexumException exception = new NexumException("Wrapper", cause);
         
         assertNotNull(exception.getCause());
         assertEquals("Root cause", exception.getCause().getMessage());
@@ -126,8 +126,8 @@ class StateMachineExceptionTest {
     @Test
     @DisplayName("Should work with string states and events")
     void testStringStateAndEvent() {
-        StateMachineException exception = 
-            new StateMachineException("Error", "StringState", "StringEvent");
+        NexumException exception = 
+            new NexumException("Error", "StringState", "StringEvent");
         
         assertTrue(exception.getMessage().contains("state=StringState"));
         assertTrue(exception.getMessage().contains("event=StringEvent"));

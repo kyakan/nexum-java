@@ -1,4 +1,4 @@
-package it.disionira.sm;
+package it.kyakan.nexum;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,11 +20,11 @@ class TransitionTest {
         START, STOP, PAUSE
     }
     
-    private StateMachineContext<TestState> context;
+    private NexumContext<TestState> context;
     
     @BeforeEach
     void setUp() {
-        context = new StateMachineContext<>(TestState.IDLE);
+        context = new NexumContext<>(TestState.IDLE);
     }
     
     @Test

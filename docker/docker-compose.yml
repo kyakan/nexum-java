@@ -4,7 +4,7 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    container_name: statemachine-test
+    container_name: nexum-test
     volumes:
       - ..:/home/ubuntu/workspace
       - maven-cache:/root/.m2
@@ -17,7 +17,7 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    container_name: statemachine-dev
+    container_name: nexum-dev
     volumes:
       - ..:/home/ubuntu/workspace
       - maven-cache:/root/.m2
@@ -32,13 +32,13 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    container_name: statemachine-test-single
+    container_name: nexum-test-single
     volumes:
       - ..:/home/ubuntu/workspace
       - maven-cache:/root/.m2
     environment:
       - MAVEN_OPTS=-Xmx512m
-      - TEST_CLASS=${TEST_CLASS:-StateMachineTest}
+      - TEST_CLASS=${TEST_CLASS:-NexumTest}
     command: mvn test -Dtest=${TEST_CLASS}
 
   # Servizio per generare report di copertura
@@ -46,7 +46,7 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    container_name: statemachine-coverage
+    container_name: nexum-coverage
     volumes:
       - ..:/home/ubuntu/workspace
       - maven-cache:/root/.m2
@@ -59,7 +59,7 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    container_name: statemachine-build
+    container_name: nexum-build
     volumes:
       - ..:/home/ubuntu/workspace
       - maven-cache:/root/.m2
@@ -69,4 +69,4 @@ services:
 
 volumes:
   maven-cache:
-    name: statemachine-maven-cache
+    name: nexum-maven-cache

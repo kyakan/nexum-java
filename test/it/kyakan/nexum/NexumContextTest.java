@@ -1,4 +1,4 @@
-package it.disionira.sm;
+package it.kyakan.nexum;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -7,20 +7,20 @@ import org.junit.jupiter.api.DisplayName;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Unit tests for StateMachineContext
+ * Unit tests for NexumContext
  */
-@DisplayName("StateMachineContext Tests")
-class StateMachineContextTest {
+@DisplayName("NexumContext Tests")
+class NexumContextTest {
     
     private enum TestState {
         IDLE, RUNNING, STOPPED
     }
     
-    private StateMachineContext<TestState> context;
+    private NexumContext<TestState> context;
     
     @BeforeEach
     void setUp() {
-        context = new StateMachineContext<>(TestState.IDLE);
+        context = new NexumContext<>(TestState.IDLE);
     }
     
     @Test

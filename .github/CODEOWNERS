@@ -1,4 +1,4 @@
-# Code Owners for StateMachine Project
+# Code Owners for Nexum Project
 # These owners will be automatically requested for review when someone opens a pull request.
 #
 # Syntax:
@@ -7,26 +7,26 @@
 # - Multiple owners: @user1 @org/team1 @user2
 
 # Default owners for everything in the repo
-* @disionira/opensource_controbutors
+* @kyakan/opensource_contributors
 
 # Specific ownership for different parts of the project
 
 # Source code - requires review from contributors team
-/src/ @disionira/opensource_controbutors
+/src/ @kyakan/opensource_contributors
 
 # Tests - requires review from contributors team
-/test/ @disionira/opensource_controbutors
+/test/ @kyakan/opensource_contributors
 
 # Documentation - can be reviewed by any contributor
-*.md @disionira/opensource_controbutors
-/docs/ @disionira/opensource_controbutors
+*.md @kyakan/opensource_contributors
+/docs/ @kyakan/opensource_contributors
 
 # CI/CD workflows - requires review from devops team
-/.github/workflows/ @disionira/devops
+/.github/workflows/ @kyakan/devops
 
 # GitHub configuration - requires review from devops team
-/.github/ @disionira/devops
+/.github/ @kyakan/devops
 
 # Build configuration - requires review from devops team
-pom.xml @disionira/devops
-/docker/ @disionira/devops
+pom.xml @kyakan/devops
+/docker/ @kyakan/devops

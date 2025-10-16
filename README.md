@@ -4,10 +4,10 @@ A generic and flexible state machine implementation in Java for Android.
 
 ## Main Components
 
-### 1. StateMachine<S, E>
+### 1. Nexum<S, E>
 The main class that manages the state machine. It's generic and can work with any type of state and event.
 
-### 2. StateMachineContext<S>
+### 2. NexumContext<S>
 Maintains the current state and provides a key-value store for additional data during transitions.
 
 ### 3. Transition<S, E>
@@ -25,7 +25,7 @@ Interface to handle state-specific logic:
 ### 5. Event<T>
 Interface for events that can carry data.
 
-### 6. StateMachineException
+### 6. NexumException
 Specific exception for state machine errors.
 
 ## Usage Example
@@ -50,7 +50,7 @@ enum DeviceEvent {
 }
 
 // 3. Create the state machine
-StateMachine<DeviceState, DeviceEvent> sm = new StateMachine<>(DeviceState.DISCONNECTED);
+Nexum<DeviceState, DeviceEvent> sm = new Nexum<>(DeviceState.DISCONNECTED);
 
 // 4. Add transitions
 sm.addTransition(DeviceState.DISCONNECTED, DeviceState.CONNECTING, DeviceEvent.CONNECT)
@@ -91,21 +91,21 @@ sm.registerStateHandler(new StateHandler<DeviceState, DeviceEvent>() {
     }
     
     @Override
-    public void onEnter(StateMachineContext<DeviceState> context, 
+    public void onEnter(NexumContext<DeviceState> context, 
                        DeviceState fromState, DeviceEvent event) {
         System.out.println("Device connected!");
         context.put("connectedAt", System.currentTimeMillis());
     }
     
     @Override
-    public void onExit(StateMachineContext<DeviceState> context, 
+    public void onExit(NexumContext<DeviceState> context, 
                       DeviceState toState, DeviceEvent event) {
         System.out.println("Leaving connected state");
     }
 });
 
 // 8. Add listeners
-sm.addListener(new StateMachine.StateMachineListener<DeviceState, DeviceEvent>() {
+sm.addListener(new Nexum.NexumListener<DeviceState, DeviceEvent>() {
     @Override
     public void onStateChanged(DeviceState fromState, DeviceState toState, DeviceEvent event) {
         System.out.println("State changed: " + fromState + " -> " + toState + " (event: " + event + ")");
@@ -125,12 +125,12 @@ try {
     sm.fireEvent(DeviceEvent.CONNECT);
     sm.fireEvent(DeviceEvent.START_OPERATION, "firmware_update");
     sm.fireEvent(DeviceEvent.OPERATION_COMPLETE);
-} catch (StateMachineException e) {
+} catch (NexumException e) {
     e.printStackTrace();
 }
 
 // 11. Access the context
-StateMachineContext<DeviceState> context = sm.getContext();
+NexumContext<DeviceState> context = sm.getContext();
 String operation = context.get("operation", String.class);
 Long startTime = context.get("startTime", Long.class);
 
@@ -138,16 +138,16 @@ Long startTime = context.get("startTime", Long.class);
 DeviceState currentState = sm.getCurrentState();
 ```
 
-## Example with Existing StateMachineStatus
+## Example with Existing NexumStatus
 
 ```java
 // Use existing enum
-StateMachine<StateMachineStatus, String> sm = 
-    new StateMachine<>(StateMachineStatus.DISCONNECTED);
+Nexum<NexumStatus, String> sm = 
+    new Nexum<>(NexumStatus.DISCONNECTED);
 
-sm.addTransition(StateMachineStatus.DISCONNECTED, StateMachineStatus.CONNECTED, "connect")
-  .addTransition(StateMachineStatus.CONNECTED, StateMachineStatus.BUSY, "start_work")
-  .addTransition(StateMachineStatus.BUSY, StateMachineStatus.CONNECTED, "finish_work");
+sm.addTransition(NexumStatus.DISCONNECTED, NexumStatus.CONNECTED, "connect")
+  .addTransition(NexumStatus.CONNECTED, NexumStatus.BUSY, "start_work")
+  .addTransition(NexumStatus.BUSY, NexumStatus.CONNECTED, "finish_work");
 
 sm.start();
 sm.fireEvent("connect");
@@ -182,7 +182,7 @@ The project includes a comprehensive suite of unit and integration tests.
 mvn test
 
 # Run a specific test class
-mvn test -Dtest=StateMachineTest
+mvn test -Dtest=NexumTest
 
 # Run tests with coverage report
 mvn test jacoco:report
@@ -191,12 +191,12 @@ mvn test jacoco:report
 ### Test Structure
 
 ```
-test/it/disionira/sm/
-├── StateMachineContextTest.java      # Tests for context management
+test/it/kyakan/nexum/
+├── NexumContextTest.java      # Tests for context management
 ├── TransitionTest.java                # Tests for transitions
-├── StateMachineTest.java              # Tests for state machine
-├── StateMachineExceptionTest.java     # Tests for error handling
-└── StateMachineIntegrationTest.java   # Real-world scenario tests
+├── NexumTest.java              # Tests for state machine
+├── NexumExceptionTest.java     # Tests for error handling
+└── NexumIntegrationTest.java   # Real-world scenario tests
 ```
 
 ### Test Coverage

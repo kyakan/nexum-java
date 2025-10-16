@@ -5,12 +5,12 @@
          http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>it.disionira</groupId>
-    <artifactId>state-machine</artifactId>
-    <version>1.0.1</version>
+    <groupId>it.kyakan</groupId>
+    <artifactId>nexum</artifactId>
+    <version>1.1.0</version>
     <packaging>jar</packaging>
 
-    <name>State Machine</name>
+    <name>Nexum - Generic State Machine</name>
     <description>A flexible and generic state machine implementation in Java</description>
 
     <properties>
@@ -159,7 +159,7 @@
         <repository>
             <id>github</id>
             <name>GitHub Packages</name>
-            <url>https://maven.pkg.github.com/disionira/gsm-java</url>
+            <url>https://maven.pkg.github.com/kyakan/nexum-java</url>
         </repository>
     </distributionManagement>
 </project>

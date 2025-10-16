@@ -9,7 +9,7 @@ BLUE='\033[0;34m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}=== StateMachine Test Runner ===${NC}"
+echo -e "${BLUE}=== Nexum Test Runner ===${NC}"
 echo ""
 
 # Verificare che Docker sia installato
@@ -53,11 +53,11 @@ case $choice in
     3)
         echo ""
         echo "Test disponibili:"
-        echo "  - StateMachineTest"
-        echo "  - StateMachineContextTest"
+        echo "  - NexumTest"
+        echo "  - NexumContextTest"
         echo "  - TransitionTest"
-        echo "  - StateMachineExceptionTest"
-        echo "  - StateMachineIntegrationTest"
+        echo "  - NexumExceptionTest"
+        echo "  - NexumIntegrationTest"
         echo ""
         read -p "Nome del test: " test_name
         echo -e "${GREEN}Eseguendo $test_name...${NC}"
@@ -71,7 +71,7 @@ case $choice in
     5)
         echo -e "${GREEN}Building progetto...${NC}"
         docker-compose up build
-        echo -e "${GREEN}JAR creato in: ../target/state-machine-1.0.0.jar${NC}"
+        echo -e "${GREEN}JAR creato in: ../target/nexum-1.0.0.jar${NC}"
         ;;
     6)
         echo -e "${RED}Pulendo container, immagini e volumi...${NC}"

@@ -1,4 +1,4 @@
-package it.disionira.sm;
+package it.kyakan.nexum;
 
 /**
  * Interface representing an event that can trigger state transitions.

@@ -1,4 +1,4 @@
-package it.disionira.sm;
+package it.kyakan.nexum;
 
 /**
  * Represents a state transition in the state machine.
@@ -81,7 +81,7 @@ public class Transition<S, E> {
      * @param eventData The event data
      * @return true if the transition can be executed
      */
-    public boolean canTransition(StateMachineContext<S> context, Object eventData) {
+    public boolean canTransition(NexumContext<S> context, Object eventData) {
         if (guard == null) {
             return true;
         }
@@ -93,7 +93,7 @@ public class Transition<S, E> {
      * @param context The state machine context
      * @param eventData The event data
      */
-    public void executeAction(StateMachineContext<S> context, Object eventData) {
+    public void executeAction(NexumContext<S> context, Object eventData) {
         if (action != null) {
             action.execute(context, event, eventData);
         }
@@ -134,7 +134,7 @@ public class Transition<S, E> {
          * @param eventData The event data
          * @return true if the transition should proceed
          */
-        boolean evaluate(StateMachineContext<S> context, E event, Object eventData);
+        boolean evaluate(NexumContext<S> context, E event, Object eventData);
     }
     
     /**
@@ -150,6 +150,6 @@ public class Transition<S, E> {
          * @param event The event
          * @param eventData The event data
          */
-        void execute(StateMachineContext<S> context, E event, Object eventData);
+        void execute(NexumContext<S> context, E event, Object eventData);
     }
 }

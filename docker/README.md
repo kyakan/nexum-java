@@ -1,6 +1,6 @@
-# Docker Environment for StateMachine
+# Docker Environment for Nexum
 
-Docker environment for development and testing of the StateMachine project without installing dependencies on the host machine.
+Docker environment for development and testing of the Nexum project without installing dependencies on the host machine.
 
 ## Prerequisites
 
@@ -34,11 +34,11 @@ mvn clean package           # Create JAR
 ### 3. Test Single - Run a specific test
 ```bash
 cd docker
-TEST_CLASS=StateMachineTest docker-compose up test-single
+TEST_CLASS=NexumTest docker-compose up test-single
 
 # Other examples:
 TEST_CLASS=TransitionTest docker-compose up test-single
-TEST_CLASS=StateMachineContextTest docker-compose up test-single
+TEST_CLASS=NexumContextTest docker-compose up test-single
 ```
 
 ### 4. Coverage - Generate coverage report
@@ -54,7 +54,7 @@ docker-compose up coverage
 cd docker
 docker-compose up build
 
-# JAR will be in: ../target/state-machine-1.0.0.jar
+# JAR will be in: ../target/nexum-1.0.0.jar
 ```
 
 ## Quick Commands
@@ -73,7 +73,7 @@ docker-compose exec dev bash
 
 # Available commands in container:
 mvn test                           # Tests
-mvn test -Dtest=StateMachineTest  # Specific test
+mvn test -Dtest=NexumTest  # Specific test
 mvn compile                        # Compile
 mvn clean                          # Clean
 tree src test                      # View structure
@@ -138,7 +138,7 @@ docker-compose exec dev bash
 mvn test
 
 # Specific test
-mvn test -Dtest=StateMachineTest
+mvn test -Dtest=NexumTest
 
 # Compile
 mvn compile
@@ -170,7 +170,7 @@ docker-compose up coverage
 ```bash
 cd docker
 docker-compose up build
-# JAR in: ../target/state-machine-1.0.0.jar
+# JAR in: ../target/nexum-1.0.0.jar
 ```
 
 ## Troubleshooting
@@ -195,7 +195,7 @@ sudo usermod -aG docker $USER
 ```bash
 # Remove the volume
 docker-compose down -v
-docker volume rm statemachine-maven-cache
+docker volume rm nexum-maven-cache
 ```
 
 ### Container won't start

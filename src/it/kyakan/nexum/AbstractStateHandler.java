@@ -1,4 +1,4 @@
-package it.disionira.sm;
+package it.kyakan.nexum;
 
 /**
  * Abstract base class for StateHandler that provides a constructor to set the state.
