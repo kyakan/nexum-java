@@ -1,6 +1,6 @@
-# Guida alla Creazione di Release per StateMachine
+# Guida alla Creazione di Release per Nexum
 
-Questa guida spiega come creare una release del progetto StateMachine utilizzando GitHub Actions.
+Questa guida spiega come creare una release del progetto Nexum utilizzando GitHub Actions.
 
 ## Prerequisiti
 
@@ -109,11 +109,11 @@ v1.0.0
 
 ### Descrizione Generata
 ```
-## StateMachine v1.0.0
+## Nexum v1.0.0
 
 ### 🚀 Features
 - Aggiunto supporto per transizioni con guard conditions
-- Implementato StateMachineContext per gestione dati
+- Implementato NexumContext per gestione dati
 
 ### 🐛 Bug Fixes
 - Corretto problema di thread safety nelle transizioni

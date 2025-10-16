@@ -9,7 +9,7 @@ import java.util.Map;
  * 
  * @param <S> The type of the state (typically an Enum or String)
  */
-public class StateMachineContext<S> {
+public class NexumContext<S> {
     private S currentState;
     private S previousState;
     private final Map<String, Object> data;
@@ -20,7 +20,7 @@ public class StateMachineContext<S> {
      * Create a new context with the given initial state
      * @param initialState The initial state
      */
-    public StateMachineContext(S initialState) {
+    public NexumContext(S initialState) {
         this.currentState = initialState;
         this.previousState = null;
         this.data = new HashMap<>();
@@ -153,7 +153,7 @@ public class StateMachineContext<S> {
     
     @Override
     public String toString() {
-        return "StateMachineContext{" +
+        return "NexumContext{" +
                 "currentState=" + currentState +
                 ", previousState=" + previousState +
                 ", dataSize=" + data.size() +

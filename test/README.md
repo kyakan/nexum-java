@@ -1,21 +1,21 @@
-# StateMachine Unit Tests
+# Nexum Unit Tests
 
-This directory contains comprehensive unit and integration tests for the StateMachine library.
+This directory contains comprehensive unit and integration tests for the Nexum library.
 
 ## Test Structure
 
 ```
-test/it/disionira/sm/
-├── StateMachineContextTest.java      # Tests for context management
+test/it/disionira/nexum/
+├── NexumContextTest.java      # Tests for context management
 ├── TransitionTest.java                # Tests for transitions
-├── StateMachineTest.java              # Tests for state machine core
-├── StateMachineExceptionTest.java     # Tests for exception handling
-└── StateMachineIntegrationTest.java   # Real-world scenario tests
+├── NexumTest.java              # Tests for state machine core
+├── NexumExceptionTest.java     # Tests for exception handling
+└── NexumIntegrationTest.java   # Real-world scenario tests
 ```
 
 ## Test Coverage
 
-### StateMachineContextTest
+### NexumContextTest
 Tests the context class that holds state and data:
 - Initial state management
 - State transitions and history
@@ -31,7 +31,7 @@ Tests transition behavior:
 - Event matching
 - Data propagation through transitions
 
-### StateMachineTest
+### NexumTest
 Tests the core state machine functionality:
 - State machine initialization and startup
 - Event firing and state transitions
@@ -41,14 +41,14 @@ Tests the core state machine functionality:
 - Thread safety
 - Reset functionality
 
-### StateMachineExceptionTest
+### NexumExceptionTest
 Tests exception handling:
 - Exception creation with various constructors
 - State and event context in exceptions
 - Error message formatting
 - Cause preservation
 
-### StateMachineIntegrationTest
+### NexumIntegrationTest
 Real-world scenario tests demonstrating:
 - **Traffic Light**: Simple cyclic state machine
 - **Door with Lock**: State machine with guards (key validation)
@@ -68,7 +68,7 @@ mvn test
 
 Run specific test class:
 ```bash
-mvn test -Dtest=StateMachineTest
+mvn test -Dtest=NexumTest
 ```
 
 Run with coverage:
@@ -102,14 +102,14 @@ Example:
 ```java
 @Test
 @DisplayName("Should transition from IDLE to RUNNING on START event")
-void testSimpleTransition() throws StateMachineException {
-    stateMachine
+void testSimpleTransition() throws NexumException {
+    Nexum
         .addTransition(TestState.IDLE, TestState.RUNNING, TestEvent.START)
         .start();
     
-    stateMachine.fireEvent(TestEvent.START);
+    Nexum.fireEvent(TestEvent.START);
     
-    assertEquals(TestState.RUNNING, stateMachine.getCurrentState());
+    assertEquals(TestState.RUNNING, Nexum.getCurrentState());
 }
 ```
 
@@ -125,7 +125,7 @@ void testSimpleTransition() throws StateMachineException {
 
 ### Testing Guards
 ```java
-stateMachine.addTransition(FROM, TO, EVENT,
+Nexum.addTransition(FROM, TO, EVENT,
     (ctx, event, data) -> {
         // Guard logic
         return condition;
@@ -134,7 +134,7 @@ stateMachine.addTransition(FROM, TO, EVENT,
 
 ### Testing Actions
 ```java
-stateMachine.addTransition(FROM, TO, EVENT, null,
+Nexum.addTransition(FROM, TO, EVENT, null,
     (ctx, event, data) -> {
         // Action logic
         ctx.put("key", value);
@@ -148,7 +148,7 @@ StateHandler<State, Event> handler = new StateHandler<>() {
     public State getState() { return STATE; }
     
     @Override
-    public void onEnter(StateMachineContext<State> ctx, State from, Event event) {
+    public void onEnter(NexumContext<State> ctx, State from, Event event) {
         // Entry logic
     }
 };
@@ -156,7 +156,7 @@ StateHandler<State, Event> handler = new StateHandler<>() {
 
 ### Testing Listeners
 ```java
-stateMachine.addListener((from, to, event) -> {
+Nexum.addListener((from, to, event) -> {
     // Listener logic
 });
 ```

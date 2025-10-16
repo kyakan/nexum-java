@@ -10,7 +10,7 @@
     <version>1.1.0</version>
     <packaging>jar</packaging>
 
-    <name>GSM - Generic State Machine</name>
+    <name>Nexum - Generic State Machine</name>
     <description>A flexible and generic state machine implementation in Java</description>
 
     <properties>
@@ -159,7 +159,7 @@
         <repository>
             <id>github</id>
             <name>GitHub Packages</name>
-            <url>https://maven.pkg.github.com/disionira/gsm-java</url>
+            <url>https://maven.pkg.github.com/disionira/nexum-java</url>
         </repository>
     </distributionManagement>
 </project>

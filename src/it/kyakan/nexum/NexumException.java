@@ -4,7 +4,7 @@ package it.kyakan.nexum;
  * Exception thrown when state machine operations fail.
  * This exception can wrap underlying causes and provide context about the failure.
  */
-public class StateMachineException extends Exception {
+public class NexumException extends Exception {
     
     private final Object currentState;
     private final Object event;
@@ -13,7 +13,7 @@ public class StateMachineException extends Exception {
      * Create a new state machine exception
      * @param message The error message
      */
-    public StateMachineException(String message) {
+    public NexumException(String message) {
         super(message);
         this.currentState = null;
         this.event = null;
@@ -24,7 +24,7 @@ public class StateMachineException extends Exception {
      * @param message The error message
      * @param cause The underlying cause
      */
-    public StateMachineException(String message, Throwable cause) {
+    public NexumException(String message, Throwable cause) {
         super(message, cause);
         this.currentState = null;
         this.event = null;
@@ -36,7 +36,7 @@ public class StateMachineException extends Exception {
      * @param currentState The current state when the error occurred
      * @param event The event that caused the error
      */
-    public StateMachineException(String message, Object currentState, Object event) {
+    public NexumException(String message, Object currentState, Object event) {
         super(message);
         this.currentState = currentState;
         this.event = event;
@@ -49,7 +49,7 @@ public class StateMachineException extends Exception {
      * @param currentState The current state when the error occurred
      * @param event The event that caused the error
      */
-    public StateMachineException(String message, Throwable cause, Object currentState, Object event) {
+    public NexumException(String message, Throwable cause, Object currentState, Object event) {
         super(message, cause);
         this.currentState = currentState;
         this.event = event;

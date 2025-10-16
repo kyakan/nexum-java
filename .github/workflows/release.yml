@@ -70,20 +70,20 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ steps.get_version.outputs.version }}
           body: |
-            ## StateMachine ${{ steps.get_version.outputs.version }}
+            ## Nexum ${{ steps.get_version.outputs.version }}
 
             ${{ steps.changelog.outputs.changelog }}
 
             ### Artefatti
-            - JAR principale: `gsm-${{ steps.get_version.outputs.version }}.jar`
-            - Javadoc: `gsm-${{ steps.get_version.outputs.version }}-javadoc.jar`
-            - Sources: `gsm-${{ steps.get_version.outputs.version }}-sources.jar`
+            - JAR principale: `nexum-${{ steps.get_version.outputs.version }}.jar`
+            - Javadoc: `nexum-${{ steps.get_version.outputs.version }}-javadoc.jar`
+            - Sources: `nexum-${{ steps.get_version.outputs.version }}-sources.jar`
 
             ### Istruzioni
             ```xml
             <dependency>
                 <groupId>it.kyakan</groupId>
-                <artifactId>gsm</artifactId>
+                <artifactId>nexum</artifactId>
                 <version>${{ steps.get_version.outputs.version }}</version>
             </dependency>
             ```
@@ -104,15 +104,15 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: target/gsm-${{ steps.get_version.outputs.version }}.jar
-          asset_name: gsm-${{ steps.get_version.outputs.version }}.jar
+          asset_path: target/nexum-${{ steps.get_version.outputs.version }}.jar
+          asset_name: nexum-${{ steps.get_version.outputs.version }}.jar
           asset_content_type: application/java-archive
 
       - name: Generate and Upload Javadoc
         run: |
           mvn javadoc:jar
-          mv target/gsm-${{ steps.get_version.outputs.version }}-javadoc.jar target/gsm-${{ steps.get_version.outputs.version }}-javadoc.jar.tmp
-          zip -r target/gsm-${{ steps.get_version.outputs.version }}-javadoc.jar target/apidocs
+          mv target/nexum-${{ steps.get_version.outputs.version }}-javadoc.jar target/nexum-${{ steps.get_version.outputs.version }}-javadoc.jar.tmp
+          zip -r target/nexum-${{ steps.get_version.outputs.version }}-javadoc.jar target/apidocs
 
       - name: Upload Javadoc Asset
         uses: actions/upload-release-asset@v1
@@ -120,8 +120,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: target/gsm-${{ steps.get_version.outputs.version }}-javadoc.jar
-          asset_name: gsm-${{ steps.get_version.outputs.version }}-javadoc.jar
+          asset_path: target/nexum-${{ steps.get_version.outputs.version }}-javadoc.jar
+          asset_name: nexum-${{ steps.get_version.outputs.version }}-javadoc.jar
           asset_content_type: application/zip
 
       - name: Generate and Upload Sources
@@ -133,11 +133,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: target/gsm-${{ steps.get_version.outputs.version }}-sources.jar
-          asset_name: gsm-${{ steps.get_version.outputs.version }}-sources.jar
+          asset_path: target/nexum-${{ steps.get_version.outputs.version }}-sources.jar
+          asset_name: nexum-${{ steps.get_version.outputs.version }}-sources.jar
           asset_content_type: application/java-archive
 
       - name: Publish to GitHub Packages
-        run: mvn deploy -DskipTests -Dgpg.skip=true -DaltDeploymentRepository=github::default::https://maven.pkg.github.com/disionira/gsm-java
+        run: mvn deploy -DskipTests -Dgpg.skip=true -DaltDeploymentRepository=github::default::https://maven.pkg.github.com/disionira/nexum-java
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

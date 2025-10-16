@@ -64,7 +64,7 @@ git tag -a v1.1.0 -m "Feature: Added support for async events"
 git push origin v1.1.0
 
 # Breaking change
-git tag -a v2.0.0 -m "Breaking: New API for StateMachine"
+git tag -a v2.0.0 -m "Breaking: New API for Nexum"
 git push origin v2.0.0
 ```
 

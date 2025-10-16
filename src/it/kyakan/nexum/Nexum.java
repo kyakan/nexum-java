@@ -14,12 +14,12 @@ import java.util.concurrent.locks.ReentrantLock;
  * @param <S> The type of the state (typically an Enum or String)
  * @param <E> The type of the event (typically an Enum or String)
  */
-public class StateMachine<S, E> {
+public class Nexum<S, E> {
     
-    private final StateMachineContext<S> context;
+    private final NexumContext<S> context;
     private final List<Transition<S, E>> transitions;
     private final Map<S, StateHandler<S, E>> stateHandlers;
-    private final List<StateMachineListener<S, E>> listeners;
+    private final List<NexumListener<S, E>> listeners;
     private final ReentrantLock lock;
     private boolean started;
     
@@ -27,8 +27,8 @@ public class StateMachine<S, E> {
      * Create a new state machine with the given initial state
      * @param initialState The initial state
      */
-    public StateMachine(S initialState) {
-        this.context = new StateMachineContext<>(initialState);
+    public Nexum(S initialState) {
+        this.context = new NexumContext<>(initialState);
         this.transitions = new ArrayList<>();
         this.stateHandlers = new HashMap<>();
         this.listeners = new CopyOnWriteArrayList<>();
@@ -41,7 +41,7 @@ public class StateMachine<S, E> {
      * @param transition The transition to add
      * @return This state machine for method chaining
      */
-    public StateMachine<S, E> addTransition(Transition<S, E> transition) {
+    public Nexum<S, E> addTransition(Transition<S, E> transition) {
         lock.lock();
         try {
             transitions.add(transition);
@@ -58,7 +58,7 @@ public class StateMachine<S, E> {
      * @param event The event that triggers the transition
      * @return This state machine for method chaining
      */
-    public StateMachine<S, E> addTransition(S fromState, S toState, E event) {
+    public Nexum<S, E> addTransition(S fromState, S toState, E event) {
         return addTransition(new Transition<>(fromState, toState, event));
     }
     
@@ -70,7 +70,7 @@ public class StateMachine<S, E> {
      * @param guard The guard condition
      * @return This state machine for method chaining
      */
-    public StateMachine<S, E> addTransition(S fromState, S toState, E event, 
+    public Nexum<S, E> addTransition(S fromState, S toState, E event, 
                                            Transition.TransitionGuard<S, E> guard) {
         return addTransition(new Transition<>(fromState, toState, event, guard));
     }
@@ -84,7 +84,7 @@ public class StateMachine<S, E> {
      * @param action The action to execute
      * @return This state machine for method chaining
      */
-    public StateMachine<S, E> addTransition(S fromState, S toState, E event,
+    public Nexum<S, E> addTransition(S fromState, S toState, E event,
                                            Transition.TransitionGuard<S, E> guard,
                                            Transition.TransitionAction<S, E> action) {
         return addTransition(new Transition<>(fromState, toState, event, guard, action));
@@ -95,7 +95,7 @@ public class StateMachine<S, E> {
      * @param handler The state handler
      * @return This state machine for method chaining
      */
-    public StateMachine<S, E> registerStateHandler(StateHandler<S, E> handler) {
+    public Nexum<S, E> registerStateHandler(StateHandler<S, E> handler) {
         lock.lock();
         try {
             stateHandlers.put(handler.getState(), handler);
@@ -110,7 +110,7 @@ public class StateMachine<S, E> {
      * @param listener The listener to add
      * @return This state machine for method chaining
      */
-    public StateMachine<S, E> addListener(StateMachineListener<S, E> listener) {
+    public Nexum<S, E> addListener(NexumListener<S, E> listener) {
         listeners.add(listener);
         return this;
     }
@@ -120,7 +120,7 @@ public class StateMachine<S, E> {
      * @param listener The listener to remove
      * @return This state machine for method chaining
      */
-    public StateMachine<S, E> removeListener(StateMachineListener<S, E> listener) {
+    public Nexum<S, E> removeListener(NexumListener<S, E> listener) {
         listeners.remove(listener);
         return this;
     }
@@ -152,9 +152,9 @@ public class StateMachine<S, E> {
     /**
      * Fire an event to trigger a state transition
      * @param event The event to fire
-     * @throws StateMachineException If the transition fails
+     * @throws NexumException If the transition fails
      */
-    public void fireEvent(E event) throws StateMachineException {
+    public void fireEvent(E event) throws NexumException {
         fireEvent(event, null);
     }
     
@@ -162,13 +162,13 @@ public class StateMachine<S, E> {
      * Fire an event with associated data
      * @param event The event to fire
      * @param eventData Optional data associated with the event
-     * @throws StateMachineException If the transition fails
+     * @throws NexumException If the transition fails
      */
-    public void fireEvent(E event, Object eventData) throws StateMachineException {
+    public void fireEvent(E event, Object eventData) throws NexumException {
         lock.lock();
         try {
             if (!started) {
-                throw new StateMachineException("State machine not started");
+                throw new NexumException("State machine not started");
             }
             
             S currentState = context.getCurrentState();
@@ -192,7 +192,7 @@ public class StateMachine<S, E> {
             }
             
             if (matchingTransition == null) {
-                throw new StateMachineException(
+                throw new NexumException(
                     "No valid transition found for event: " + event,
                     currentState,
                     event
@@ -205,10 +205,10 @@ public class StateMachine<S, E> {
         } catch (Exception e) {
             context.setLastError(e);
             notifyError(e);
-            if (e instanceof StateMachineException) {
-                throw (StateMachineException) e;
+            if (e instanceof NexumException) {
+                throw (NexumException) e;
             }
-            throw new StateMachineException("Error during state transition", e, 
+            throw new NexumException("Error during state transition", e, 
                                           context.getCurrentState(), event);
         } finally {
             lock.unlock();
@@ -256,7 +256,7 @@ public class StateMachine<S, E> {
      * Get the state machine context
      * @return The context
      */
-    public StateMachineContext<S> getContext() {
+    public NexumContext<S> getContext() {
         return context;
     }
     
@@ -307,7 +307,7 @@ public class StateMachine<S, E> {
      * Notify listeners of a state change
      */
     private void notifyStateChanged(S fromState, S toState, E event) {
-        for (StateMachineListener<S, E> listener : listeners) {
+        for (NexumListener<S, E> listener : listeners) {
             try {
                 listener.onStateChanged(fromState, toState, event);
             } catch (Exception e) {
@@ -321,7 +321,7 @@ public class StateMachine<S, E> {
      * Notify listeners of an error
      */
     private void notifyError(Exception error) {
-        for (StateMachineListener<S, E> listener : listeners) {
+        for (NexumListener<S, E> listener : listeners) {
             try {
                 listener.onError(error);
             } catch (Exception e) {
@@ -336,7 +336,7 @@ public class StateMachine<S, E> {
      * @param <S> The state type
      * @param <E> The event type
      */
-    public interface StateMachineListener<S, E> {
+    public interface NexumListener<S, E> {
         /**
          * Called when the state changes
          * @param fromState The previous state (can be null for initial state)

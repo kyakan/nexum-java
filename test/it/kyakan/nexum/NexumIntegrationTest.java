@@ -10,10 +10,10 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Integration tests for StateMachine demonstrating real-world scenarios
+ * Integration tests for Nexum demonstrating real-world scenarios
  */
-@DisplayName("StateMachine Integration Tests")
-class StateMachineIntegrationTest {
+@DisplayName("Nexum Integration Tests")
+class NexumIntegrationTest {
     
     // Enums for Traffic Light test
     enum TrafficLightState { RED, YELLOW, GREEN }
@@ -44,10 +44,10 @@ class StateMachineIntegrationTest {
      */
     @Test
     @DisplayName("Traffic Light State Machine")
-    void testTrafficLightStateMachine() throws StateMachineException {
+    void testTrafficLightNexum() throws NexumException {
         
-        StateMachine<TrafficLightState, TrafficLightEvent> trafficLight = 
-            new StateMachine<>(TrafficLightState.RED);
+        Nexum<TrafficLightState, TrafficLightEvent> trafficLight = 
+            new Nexum<>(TrafficLightState.RED);
         
         List<TrafficLightState> stateHistory = new ArrayList<>();
         
@@ -78,8 +78,8 @@ class StateMachineIntegrationTest {
      */
     @Test
     @DisplayName("Door State Machine with Lock")
-    void testDoorStateMachine() throws StateMachineException {
-        StateMachine<DoorState, DoorEvent> door = new StateMachine<>(DoorState.CLOSED);
+    void testDoorNexum() throws NexumException {
+        Nexum<DoorState, DoorEvent> door = new Nexum<>(DoorState.CLOSED);
         
         door
             .addTransition(DoorState.CLOSED, DoorState.OPEN, DoorEvent.OPEN)
@@ -105,7 +105,7 @@ class StateMachineIntegrationTest {
         assertEquals(DoorState.LOCKED, door.getCurrentState());
         
         // Try to unlock with wrong key
-        assertThrows(StateMachineException.class, () -> {
+        assertThrows(NexumException.class, () -> {
             door.fireEvent(DoorEvent.UNLOCK, "wrong-key");
         });
         assertEquals(DoorState.LOCKED, door.getCurrentState());
@@ -120,15 +120,15 @@ class StateMachineIntegrationTest {
      */
     @Test
     @DisplayName("Order Processing State Machine")
-    void testOrderProcessingStateMachine() throws StateMachineException {
-        StateMachine<OrderState, OrderEvent> order = new StateMachine<>(OrderState.PENDING);
+    void testOrderProcessingNexum() throws NexumException {
+        Nexum<OrderState, OrderEvent> order = new Nexum<>(OrderState.PENDING);
         
         // Track order processing steps
         List<String> processingLog = new ArrayList<>();
         
         StateHandler<OrderState, OrderEvent> confirmedHandler = new AbstractStateHandler<OrderState, OrderEvent>(OrderState.CONFIRMED) {
             @Override
-            public void onEnter(StateMachineContext<OrderState> context, OrderState fromState, OrderEvent event) {
+            public void onEnter(NexumContext<OrderState> context, OrderState fromState, OrderEvent event) {
                 processingLog.add("Order confirmed - preparing for shipment");
                 context.put("confirmationTime", System.currentTimeMillis());
             }
@@ -136,7 +136,7 @@ class StateMachineIntegrationTest {
         
         StateHandler<OrderState, OrderEvent> shippedHandler = new AbstractStateHandler<OrderState, OrderEvent>(OrderState.SHIPPED) {
             @Override
-            public void onEnter(StateMachineContext<OrderState> context, OrderState fromState, OrderEvent event) {
+            public void onEnter(NexumContext<OrderState> context, OrderState fromState, OrderEvent event) {
                 processingLog.add("Order shipped - tracking number generated");
                 context.put("trackingNumber", "TRACK-12345");
             }
@@ -174,8 +174,8 @@ class StateMachineIntegrationTest {
      */
     @Test
     @DisplayName("Media Player State Machine")
-    void testMediaPlayerStateMachine() throws StateMachineException {
-        StateMachine<PlayerState, PlayerEvent> player = new StateMachine<>(PlayerState.STOPPED);
+    void testMediaPlayerNexum() throws NexumException {
+        Nexum<PlayerState, PlayerEvent> player = new Nexum<>(PlayerState.STOPPED);
         
         final int[] playCount = {0};
         
@@ -226,9 +226,9 @@ class StateMachineIntegrationTest {
      */
     @Test
     @DisplayName("Vending Machine State Machine")
-    void testVendingMachineStateMachine() throws StateMachineException {
-        StateMachine<VendingState, VendingEvent> vendingMachine = 
-            new StateMachine<>(VendingState.IDLE);
+    void testVendingMachineNexum() throws NexumException {
+        Nexum<VendingState, VendingEvent> vendingMachine = 
+            new Nexum<>(VendingState.IDLE);
         
         vendingMachine
             .addTransition(VendingState.IDLE, VendingState.COIN_INSERTED, VendingEvent.INSERT_COIN,
@@ -263,7 +263,7 @@ class StateMachineIntegrationTest {
         assertEquals(100, vendingMachine.getContext().get("balance"));
         
         // Try to select expensive item (should fail)
-        assertThrows(StateMachineException.class, () -> {
+        assertThrows(NexumException.class, () -> {
             vendingMachine.fireEvent(VendingEvent.SELECT_ITEM, 150);
         });
         
@@ -283,9 +283,9 @@ class StateMachineIntegrationTest {
      */
     @Test
     @DisplayName("Connection State Machine with Retry")
-    void testConnectionStateMachine() throws StateMachineException {
-        StateMachine<ConnectionState, ConnectionEvent> connection = 
-            new StateMachine<>(ConnectionState.DISCONNECTED);
+    void testConnectionNexum() throws NexumException {
+        Nexum<ConnectionState, ConnectionEvent> connection = 
+            new Nexum<>(ConnectionState.DISCONNECTED);
         
         connection
             .addTransition(ConnectionState.DISCONNECTED, ConnectionState.CONNECTING, ConnectionEvent.CONNECT,

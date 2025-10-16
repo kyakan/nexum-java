@@ -1,9 +1,9 @@
-# Dockerfile per ambiente di sviluppo e test StateMachine
+# Dockerfile per ambiente di sviluppo e test Nexum
 FROM maven:3.9.11-sapmachine-25
 
 # Metadata
-LABEL maintainer="StateMachine Project"
-LABEL description="Development and testing environment for StateMachine"
+LABEL maintainer="Nexum Project"
+LABEL description="Development and testing environment for Nexum"
 
 # Installare utility utili
 RUN apt-get update && apt-get install -y \
