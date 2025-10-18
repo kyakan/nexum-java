@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -19,24 +20,38 @@ public class Nexum<S, E> {
 
     private final NexumContext<S> context;
     private final List<Transition<S, E>> transitions;
+    private final List<ScheduledTransition<S, E>> scheduledTransitions;
     private final Map<S, StateHandler<S, E>> stateHandlers;
     private final List<NexumListener<S, E>> listeners;
     private final ReentrantLock lock;
     private boolean started;
     private StateHandler<S, E> defaultHandler = null;
+    private TimerService timerService;
 
     /**
      * Create a new state machine with the given initial state
-     * 
+     *
      * @param initialState The initial state
      */
     public Nexum(S initialState) {
+        this(initialState, null);
+    }
+
+    /**
+     * Create a new state machine with the given initial state and timer service
+     *
+     * @param initialState The initial state
+     * @param timerService The timer service to use for scheduling events
+     */
+    public Nexum(S initialState, TimerService timerService) {
         this.context = new NexumContext<>(initialState);
         this.transitions = new ArrayList<>();
+        this.scheduledTransitions = new ArrayList<>();
         this.stateHandlers = new HashMap<>();
         this.listeners = new CopyOnWriteArrayList<>();
         this.lock = new ReentrantLock();
         this.started = false;
+        this.timerService = timerService;
     }
 
     /**
@@ -83,7 +98,7 @@ public class Nexum<S, E> {
 
     /**
      * Add a transition with a guard and action
-     * 
+     *
      * @param fromState The source state
      * @param toState   The target state
      * @param event     The event that triggers the transition
@@ -95,6 +110,61 @@ public class Nexum<S, E> {
             Transition.TransitionGuard<S, E> guard,
             Transition.TransitionAction<S, E> action) {
         return addTransition(new Transition<>(fromState, toState, event, guard, action));
+    }
+
+    /**
+     * Add a scheduled transition to the state machine
+     *
+     * @param fromState The source state
+     * @param toState   The target state
+     * @param event     The event that triggers this transition
+     * @param delay     The delay before triggering the transition
+     * @param unit      The time unit of the delay
+     * @return This state machine for method chaining
+     */
+    public Nexum<S, E> addScheduledTransition(S fromState, S toState, E event, long delay, TimeUnit unit) {
+        return addScheduledTransition(fromState, toState, event, delay, unit, null, null);
+    }
+
+    /**
+     * Add a scheduled transition with a guard condition
+     *
+     * @param fromState The source state
+     * @param toState   The target state
+     * @param event     The event that triggers this transition
+     * @param delay     The delay before triggering the transition
+     * @param unit      The time unit of the delay
+     * @param guard     The guard condition
+     * @return This state machine for method chaining
+     */
+    public Nexum<S, E> addScheduledTransition(S fromState, S toState, E event, long delay, TimeUnit unit,
+            Transition.TransitionGuard<S, E> guard) {
+        return addScheduledTransition(fromState, toState, event, delay, unit, guard, null);
+    }
+
+    /**
+     * Add a scheduled transition with a guard and action
+     *
+     * @param fromState The source state
+     * @param toState   The target state
+     * @param event     The event that triggers this transition
+     * @param delay     The delay before triggering the transition
+     * @param unit      The time unit of the delay
+     * @param guard     The guard condition
+     * @param action    The action to execute
+     * @return This state machine for method chaining
+     */
+    public Nexum<S, E> addScheduledTransition(S fromState, S toState, E event, long delay, TimeUnit unit,
+            Transition.TransitionGuard<S, E> guard, Transition.TransitionAction<S, E> action) {
+        ScheduledTransition<S, E> scheduledTransition = new ScheduledTransition<>(fromState, toState, event, delay, unit, timerService, this, guard, action);
+        lock.lock();
+        try {
+            transitions.add(scheduledTransition);
+            scheduledTransitions.add(scheduledTransition);
+            return this;
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -171,6 +241,9 @@ public class Nexum<S, E> {
             if (handler != null) {
                 handler.onEnter(context, null, null);
             }
+
+            // Schedule transitions for the initial state
+            scheduleTransitionsForState(currentState);
 
             notifyStateChanged(null, currentState, null);
         } finally {
@@ -251,6 +324,28 @@ public class Nexum<S, E> {
     }
 
     /**
+     * Schedule all transitions for a given state
+     */
+    private void scheduleTransitionsForState(S state) {
+        for (ScheduledTransition<S, E> scheduledTransition : scheduledTransitions) {
+            if (scheduledTransition.getFromState().equals(state)) {
+                scheduledTransition.schedule();
+            }
+        }
+    }
+
+    /**
+     * Cancel all scheduled transitions for a given state
+     */
+    private void cancelTransitionsForState(S state) {
+        for (ScheduledTransition<S, E> scheduledTransition : scheduledTransitions) {
+            if (scheduledTransition.getFromState().equals(state)) {
+                scheduledTransition.cancel();
+            }
+        }
+    }
+
+    /**
      * Execute a transition
      */
     private void executeTransition(Transition<S, E> transition, E event, Object eventData) {
@@ -263,6 +358,9 @@ public class Nexum<S, E> {
             fromHandler.onExit(context, toState, event);
         }
 
+        // Cancel scheduled transitions for the current state
+        cancelTransitionsForState(fromState);
+
         // Execute transition action
         transition.executeAction(context, eventData);
 
@@ -274,6 +372,9 @@ public class Nexum<S, E> {
         if (toHandler != null) {
             toHandler.onEnter(context, fromState, event);
         }
+
+        // Schedule transitions for the new state
+        scheduleTransitionsForState(toState);
 
         // Notify listeners
         notifyStateChanged(fromState, toState, event);
@@ -289,12 +390,79 @@ public class Nexum<S, E> {
     }
 
     /**
-     * Get the state machine context
-     * 
+     * Gets the state machine context
+     *
      * @return The context
      */
     public NexumContext<S> getContext() {
         return context;
+    }
+
+    /**
+     * Sets the timer service to use for scheduling events
+     *
+     * @param timerService The timer service
+     */
+    public void setTimerService(TimerService timerService) {
+        this.timerService = timerService;
+    }
+
+    /**
+     * Schedules an event to be fired after a delay
+     *
+     * @param event The event to fire
+     * @param delay The delay before firing the event
+     * @param unit  The time unit of the delay
+     * @throws IllegalStateException If no timer service is set
+     */
+    public void scheduleEvent(E event, long delay, TimeUnit unit) {
+        scheduleEvent(event, null, delay, unit);
+    }
+
+    /**
+     * Schedules an event to be fired after a delay with associated data
+     *
+     * @param event The event to fire
+     * @param eventData Optional data associated with the event
+     * @param delay The delay before firing the event
+     * @param unit  The time unit of the delay
+     * @throws IllegalStateException If no timer service is set
+     */
+    public void scheduleEvent(E event, Object eventData, long delay, TimeUnit unit) {
+        if (timerService == null) {
+            throw new IllegalStateException("No timer service set");
+        }
+        timerService.scheduleOnce(() -> fireEvent(event, eventData), delay, unit);
+    }
+
+    /**
+     * Schedules an event to be fired periodically
+     *
+     * @param event         The event to fire
+     * @param initialDelay The initial delay before the first firing
+     * @param period        The period between firings
+     * @param unit          The time unit of the delay and period
+     * @throws IllegalStateException If no timer service is set
+     */
+    public void schedulePeriodicEvent(E event, long initialDelay, long period, TimeUnit unit) {
+        schedulePeriodicEvent(event, null, initialDelay, period, unit);
+    }
+
+    /**
+     * Schedules an event to be fired periodically with associated data
+     *
+     * @param event The event to fire
+     * @param eventData Optional data associated with the event
+     * @param initialDelay The initial delay before the first firing
+     * @param period The period between firings
+     * @param unit   The time unit of the delay and period
+     * @throws IllegalStateException If no timer service is set
+     */
+    public void schedulePeriodicEvent(E event, Object eventData, long initialDelay, long period, TimeUnit unit) {
+        if (timerService == null) {
+            throw new IllegalStateException("No timer service set");
+        }
+        timerService.schedulePeriodically(() -> fireEvent(event, eventData), initialDelay, period, unit);
     }
 
     /**

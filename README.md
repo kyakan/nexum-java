@@ -162,6 +162,8 @@ sm.fireEvent("connect");
 - **Observable**: Listeners to monitor state changes and errors
 - **Context**: Key-value store to maintain data during transitions
 - **Error handling**: Robust error handling with specific exceptions
+- **Timer Support**: Schedule events to be fired after a delay or periodically
+- **Scheduled Transitions**: Define transitions that are automatically triggered after a delay when in a specific state
 
 ## Notes
 
@@ -170,6 +172,52 @@ sm.fireEvent("connect");
 - Guard conditions allow you to control whether a transition can be executed
 - Actions are executed during the transition, after onExit and before onEnter
 - The context can be used to pass data between states and transitions
+- Timer events can be scheduled using a custom `TimerService` implementation
+## Scheduled Transitions
+
+Scheduled transitions allow you to define transitions that are automatically triggered after a specified delay when the state machine is in a particular state. This is useful for implementing timeouts, periodic checks, or delayed actions that are tied to specific states.
+
+### Adding Scheduled Transitions
+
+```java
+// Create state machine with timer service
+TimerService timerService = new JavaTimerService();
+Nexum<DeviceState, DeviceEvent> sm = new Nexum<>(DeviceState.DISCONNECTED, timerService);
+
+// Add a scheduled transition from DISCONNECTED to CONNECTED after 5 seconds
+sm.addScheduledTransition(
+    DeviceState.DISCONNECTED,
+    DeviceState.CONNECTED,
+    DeviceEvent.CONNECT,
+    5,
+    TimeUnit.SECONDS
+);
+
+// Add a periodic scheduled transition (self-transition) every 1 minute
+sm.addScheduledTransition(
+    DeviceState.CONNECTED,
+    DeviceState.CONNECTED,
+    DeviceEvent.HEARTBEAT,
+    1,
+    TimeUnit.MINUTES
+);
+
+// Start the state machine
+sm.start();
+```
+
+### How Scheduled Transitions Work
+
+1. When the state machine enters a state, all scheduled transitions originating from that state are automatically scheduled.
+2. When the state machine leaves a state, all scheduled transitions for that state are automatically canceled.
+3. Scheduled transitions can have guard conditions and actions, just like regular transitions.
+4. You can create periodic transitions by having the same state as both source and target.
+
+### Notes
+
+- Scheduled transitions require a `TimerService` implementation to be provided to the state machine.
+- The timer service is responsible for actually executing the scheduled tasks.
+- Scheduled transitions are automatically managed when entering and exiting states.
 
 ## Testing
 
@@ -210,6 +258,7 @@ The tests cover:
 - ✅ Thread safety
 - ✅ Context data management
 - ✅ Real-world scenarios (traffic light, door with lock, orders, media player, etc.)
+- ✅ Timer-based event scheduling
 
 For more details, see [`test/README.md`](test/README.md).
 
@@ -267,6 +316,108 @@ This will automatically:
 - Add installation instructions
 
 For detailed release instructions, see [`.github/RELEASE.md`](.github/RELEASE.md).
+
+## Timer Support
+
+The state machine supports scheduling events to be fired after a delay or periodically. This is useful for implementing timeouts, periodic checks, or delayed actions.
+
+### Using TimerService
+
+To use timer functionality, you need to provide an implementation of the `TimerService` interface:
+
+```java
+public interface TimerService {
+    void scheduleOnce(Runnable task, long delay, TimeUnit unit);
+    void schedulePeriodically(Runnable task, long initialDelay, long period, TimeUnit unit);
+    void cancel();
+}
+```
+
+### Example Implementations
+
+#### Java Standard Library Implementation
+
+```java
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+public class JavaTimerService implements TimerService {
+    private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+
+    @Override
+    public void scheduleOnce(Runnable task, long delay, TimeUnit unit) {
+        executor.schedule(task, delay, unit);
+    }
+
+    @Override
+    public void schedulePeriodically(Runnable task, long initialDelay, long period, TimeUnit unit) {
+        executor.scheduleAtFixedRate(task, initialDelay, period, unit);
+    }
+
+    @Override
+    public void cancel() {
+        executor.shutdown();
+    }
+}
+```
+
+#### Android Implementation
+
+```java
+import android.os.Handler;
+import android.os.Looper;
+
+public class AndroidTimerService implements TimerService {
+    private final Handler handler = new Handler(Looper.getMainLooper());
+
+    @Override
+    public void scheduleOnce(Runnable task, long delay, TimeUnit unit) {
+        handler.postDelayed(task, unit.toMillis(delay));
+    }
+
+    @Override
+    public void schedulePeriodically(Runnable task, long initialDelay, long period, TimeUnit unit) {
+        // Note: This is a simplified implementation
+        // For true periodic execution, consider using a Handler with repeated postDelayed
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                task.run();
+                handler.postDelayed(this, unit.toMillis(period));
+            }
+        }, unit.toMillis(initialDelay));
+    }
+
+    @Override
+    public void cancel() {
+        handler.removeCallbacksAndMessages(null);
+    }
+}
+```
+
+### Using Timer in State Machine
+
+```java
+// 1. Create a timer service implementation
+TimerService timerService = new JavaTimerService();
+
+// 2. Create state machine with timer service
+Nexum<DeviceState, DeviceEvent> sm = new Nexum<>(DeviceState.DISCONNECTED, timerService);
+
+// 3. Schedule events
+sm.scheduleEvent(DeviceEvent.CONNECT, 5, TimeUnit.SECONDS); // Fire CONNECT after 5 seconds
+sm.schedulePeriodicEvent(DeviceEvent.HEARTBEAT, 0, 1, TimeUnit.MINUTES); // Fire HEARTBEAT every minute
+
+// 4. Start the state machine
+sm.start();
+```
+
+### Notes
+
+- The timer service is optional. If not provided, timer-related methods will throw `IllegalStateException`.
+- You can set or change the timer service at any time using `setTimerService()`.
+- Remember to call `cancel()` on your timer service when it's no longer needed to free resources.
 
 ## License
 
