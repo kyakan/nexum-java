@@ -4,8 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -20,11 +18,11 @@ public class TimerServiceTest {
     }
 
     private Nexum<TestState, TestEvent> stateMachine;
-    private TestTimerService testTimerService;
+    private TimerServiceImpl testTimerService;
 
     @BeforeEach
     public void setUp() {
-        testTimerService = new TestTimerService();
+        testTimerService = new TimerServiceImpl();
         stateMachine = new Nexum<>(TestState.IDLE, testTimerService);
 
         // Define transitions
@@ -48,7 +46,7 @@ public class TimerServiceTest {
         stateMachine.scheduleEvent(TestEvent.START, 1, TimeUnit.SECONDS);
 
         // Execute the scheduled task immediately
-        testTimerService.executeScheduledTasks();
+        testTimerService.trigger();
 
         // Verify the state changed to RUNNING
         assertEquals(TestState.RUNNING, stateMachine.getCurrentState());
@@ -63,7 +61,7 @@ public class TimerServiceTest {
         stateMachine.schedulePeriodicEvent(TestEvent.TIMEOUT, 1, 1, TimeUnit.SECONDS);
 
         // Execute the scheduled task immediately
-        testTimerService.executeScheduledTasks();
+        testTimerService.trigger();
 
         // Verify the state changed to STOPPED
         assertEquals(TestState.STOPPED, stateMachine.getCurrentState());
@@ -74,37 +72,10 @@ public class TimerServiceTest {
         stateMachine.scheduleEvent(TestEvent.START, "test data", 1, TimeUnit.SECONDS);
 
         // Execute the scheduled task immediately
-        testTimerService.executeScheduledTasks();
+        testTimerService.trigger();
 
         // Verify the state changed to RUNNING
         assertEquals(TestState.RUNNING, stateMachine.getCurrentState());
     }
 
-    // Simple implementation of TimerService for testing
-    private static class TestTimerService implements TimerService {
-        private final Runnable scheduledTask;
-
-        public TestTimerService() {
-            this.scheduledTask = null;
-        }
-
-        @Override
-        public void scheduleOnce(Runnable task, long delay, TimeUnit unit) {
-            task.run(); // Execute immediately for testing
-        }
-
-        @Override
-        public void schedulePeriodically(Runnable task, long initialDelay, long period, TimeUnit unit) {
-            task.run(); // Execute immediately for testing
-        }
-
-        @Override
-        public void cancel() {
-            // Do nothing for testing
-        }
-
-        public void executeScheduledTasks() {
-            // Not needed in this simple implementation
-        }
-    }
 }

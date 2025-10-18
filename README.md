@@ -163,6 +163,7 @@ sm.fireEvent("connect");
 - **Context**: Key-value store to maintain data during transitions
 - **Error handling**: Robust error handling with specific exceptions
 - **Timer Support**: Schedule events to be fired after a delay or periodically
+- **Scheduled Transitions**: Define transitions that are automatically triggered after a delay when in a specific state
 
 ## Notes
 
@@ -172,6 +173,51 @@ sm.fireEvent("connect");
 - Actions are executed during the transition, after onExit and before onEnter
 - The context can be used to pass data between states and transitions
 - Timer events can be scheduled using a custom `TimerService` implementation
+## Scheduled Transitions
+
+Scheduled transitions allow you to define transitions that are automatically triggered after a specified delay when the state machine is in a particular state. This is useful for implementing timeouts, periodic checks, or delayed actions that are tied to specific states.
+
+### Adding Scheduled Transitions
+
+```java
+// Create state machine with timer service
+TimerService timerService = new JavaTimerService();
+Nexum<DeviceState, DeviceEvent> sm = new Nexum<>(DeviceState.DISCONNECTED, timerService);
+
+// Add a scheduled transition from DISCONNECTED to CONNECTED after 5 seconds
+sm.addScheduledTransition(
+    DeviceState.DISCONNECTED,
+    DeviceState.CONNECTED,
+    DeviceEvent.CONNECT,
+    5,
+    TimeUnit.SECONDS
+);
+
+// Add a periodic scheduled transition (self-transition) every 1 minute
+sm.addScheduledTransition(
+    DeviceState.CONNECTED,
+    DeviceState.CONNECTED,
+    DeviceEvent.HEARTBEAT,
+    1,
+    TimeUnit.MINUTES
+);
+
+// Start the state machine
+sm.start();
+```
+
+### How Scheduled Transitions Work
+
+1. When the state machine enters a state, all scheduled transitions originating from that state are automatically scheduled.
+2. When the state machine leaves a state, all scheduled transitions for that state are automatically canceled.
+3. Scheduled transitions can have guard conditions and actions, just like regular transitions.
+4. You can create periodic transitions by having the same state as both source and target.
+
+### Notes
+
+- Scheduled transitions require a `TimerService` implementation to be provided to the state machine.
+- The timer service is responsible for actually executing the scheduled tasks.
+- Scheduled transitions are automatically managed when entering and exiting states.
 
 ## Testing
 
