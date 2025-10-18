@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -24,19 +25,31 @@ public class Nexum<S, E> {
     private final ReentrantLock lock;
     private boolean started;
     private StateHandler<S, E> defaultHandler = null;
+    private TimerService timerService;
 
     /**
      * Create a new state machine with the given initial state
-     * 
+     *
      * @param initialState The initial state
      */
     public Nexum(S initialState) {
+        this(initialState, null);
+    }
+
+    /**
+     * Create a new state machine with the given initial state and timer service
+     *
+     * @param initialState The initial state
+     * @param timerService The timer service to use for scheduling events
+     */
+    public Nexum(S initialState, TimerService timerService) {
         this.context = new NexumContext<>(initialState);
         this.transitions = new ArrayList<>();
         this.stateHandlers = new HashMap<>();
         this.listeners = new CopyOnWriteArrayList<>();
         this.lock = new ReentrantLock();
         this.started = false;
+        this.timerService = timerService;
     }
 
     /**
@@ -289,12 +302,79 @@ public class Nexum<S, E> {
     }
 
     /**
-     * Get the state machine context
-     * 
+     * Gets the state machine context
+     *
      * @return The context
      */
     public NexumContext<S> getContext() {
         return context;
+    }
+
+    /**
+     * Sets the timer service to use for scheduling events
+     *
+     * @param timerService The timer service
+     */
+    public void setTimerService(TimerService timerService) {
+        this.timerService = timerService;
+    }
+
+    /**
+     * Schedules an event to be fired after a delay
+     *
+     * @param event The event to fire
+     * @param delay The delay before firing the event
+     * @param unit  The time unit of the delay
+     * @throws IllegalStateException If no timer service is set
+     */
+    public void scheduleEvent(E event, long delay, TimeUnit unit) {
+        scheduleEvent(event, null, delay, unit);
+    }
+
+    /**
+     * Schedules an event to be fired after a delay with associated data
+     *
+     * @param event The event to fire
+     * @param eventData Optional data associated with the event
+     * @param delay The delay before firing the event
+     * @param unit  The time unit of the delay
+     * @throws IllegalStateException If no timer service is set
+     */
+    public void scheduleEvent(E event, Object eventData, long delay, TimeUnit unit) {
+        if (timerService == null) {
+            throw new IllegalStateException("No timer service set");
+        }
+        timerService.scheduleOnce(() -> fireEvent(event, eventData), delay, unit);
+    }
+
+    /**
+     * Schedules an event to be fired periodically
+     *
+     * @param event         The event to fire
+     * @param initialDelay The initial delay before the first firing
+     * @param period        The period between firings
+     * @param unit          The time unit of the delay and period
+     * @throws IllegalStateException If no timer service is set
+     */
+    public void schedulePeriodicEvent(E event, long initialDelay, long period, TimeUnit unit) {
+        schedulePeriodicEvent(event, null, initialDelay, period, unit);
+    }
+
+    /**
+     * Schedules an event to be fired periodically with associated data
+     *
+     * @param event The event to fire
+     * @param eventData Optional data associated with the event
+     * @param initialDelay The initial delay before the first firing
+     * @param period The period between firings
+     * @param unit   The time unit of the delay and period
+     * @throws IllegalStateException If no timer service is set
+     */
+    public void schedulePeriodicEvent(E event, Object eventData, long initialDelay, long period, TimeUnit unit) {
+        if (timerService == null) {
+            throw new IllegalStateException("No timer service set");
+        }
+        timerService.schedulePeriodically(() -> fireEvent(event, eventData), initialDelay, period, unit);
     }
 
     /**
