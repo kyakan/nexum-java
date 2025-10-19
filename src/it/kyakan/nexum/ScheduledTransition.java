@@ -80,7 +80,7 @@ public class ScheduledTransition<S, E> extends Transition<S, E> {
                 }
             }
         };
-        this.timerService.scheduleOnce(scheduledTask, delay, unit);
+        this.timerService.schedulePeriodically(scheduledTask, delay, delay, unit);
     }
 
     /**
