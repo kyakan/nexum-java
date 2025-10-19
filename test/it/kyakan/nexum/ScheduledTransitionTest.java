@@ -157,16 +157,17 @@ public class ScheduledTransitionTest {
                 .start();
 
         // Verify scheduled transition was registered
-        assertEquals(2, timerService.SCHEDULED_COUNT);
+        assertEquals(1, timerService.SCHEDULED_COUNT);
         assertFalse(eventTriggered.get());
         assertFalse(eventTriggeredB.get());
         
         // Manually trigger the scheduled transition
         timerService.triggerPeriod(0);
         
-        assertEquals(2, timerService.SCHEDULED_COUNT);
+        assertEquals(1, timerService.SCHEDULED_COUNT);
         assertTrue(eventTriggered.get());
         assertFalse(eventTriggeredB.get());
+        assertEquals(TestState.STATE_C, nexum.getCurrentState());
 
         nexum.reset(TestState.STATE_B);
         eventTriggered.set(false);
@@ -201,7 +202,7 @@ public class ScheduledTransitionTest {
                 .start();
 
         // Verify scheduled transition was registered
-        assertEquals(2, timerService.SCHEDULED_COUNT);
+        assertEquals(1, timerService.SCHEDULED_COUNT);
         assertFalse(transitioned[0]);
         
         // Manually trigger the scheduled transition
@@ -228,7 +229,7 @@ public class ScheduledTransitionTest {
                 .start();
 
         // Verify scheduled transition was registered
-        assertEquals(2, timerService.SCHEDULED_COUNT);
+        assertEquals(1, timerService.SCHEDULED_COUNT);
         assertFalse(actionExecuted[0]);
         
         // Manually trigger the scheduled transition
@@ -256,7 +257,7 @@ public class ScheduledTransitionTest {
             .start();
 
         // Verify scheduled transition was registered
-        assertEquals(2, timerService.SCHEDULED_COUNT);
+        assertEquals(1, timerService.SCHEDULED_COUNT);
         assertFalse(actionExecuted[0]);
         
         // Manually trigger the scheduled transition
@@ -335,7 +336,7 @@ public class ScheduledTransitionTest {
                 .start();
 
         // Should create 2 states × 2 events = 4 scheduled transitions
-        assertEquals(4, timerService.SCHEDULED_COUNT);
+        assertEquals(2, timerService.SCHEDULED_COUNT);
         assertEquals(0, transitionCount[0]);
         
         // Trigger the last scheduled transition (most recent one stored)
@@ -362,18 +363,30 @@ public class ScheduledTransitionTest {
                         })
                 .start();
 
-        // Should create 2 states × 2 events = 4 scheduled transitions
-        assertEquals(4, timerService.SCHEDULED_COUNT);
+        assertEquals(2, timerService.SCHEDULED_COUNT);
         assertEquals(0, transitionCount[0]);
         assertEquals(TestState.STATE_A, nexum.getCurrentState());
         
-        // Trigger the last scheduled transition
-        timerService.triggerPeriod();
-        assertEquals(3, transitionCount[0]);
+        timerService.triggerPeriod(0);
+        timerService.triggerPeriod(1);
+
+        assertEquals(4, timerService.SCHEDULED_COUNT);
+        assertEquals(1, transitionCount[0]);
         assertEquals(TestState.STATE_B, nexum.getCurrentState());
         assertTrue(nexum.getContext().contains("lastEvent"));
-        timerService.triggerPeriod();
-        assertEquals(5, transitionCount[0]);
+        
+        timerService.triggerPeriod(0);
+        timerService.triggerPeriod(1);
+
+        assertEquals(4, timerService.SCHEDULED_COUNT);
+        assertEquals(1, transitionCount[0]);
+        assertEquals(TestState.STATE_B, nexum.getCurrentState());
+        assertTrue(nexum.getContext().contains("lastEvent"));
+
+
+        timerService.triggerPeriod(3);
+
+        assertEquals(2, transitionCount[0]);
         assertEquals(TestState.STATE_B, nexum.getCurrentState());
         assertTrue(nexum.getContext().contains("lastEvent"));
     }

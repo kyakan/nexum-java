@@ -287,6 +287,18 @@ public class Nexum<S, E> {
     }
 
     /**
+     * Start building a scheduled transition from one or more source states
+     * This provides a fluent API for creating scheduled transitions
+     *
+     * @param fromStates One or more source states
+     * @return A ScheduledTransitionBuilder for method chaining
+     */
+    @SafeVarargs
+    public final ScheduledTransitionBuilder fromScheduled(S... fromStates) {
+        return new ScheduledTransitionBuilder(fromStates);
+    }
+
+    /**
      * Fluent builder for creating transitions with a more readable syntax
      */
     public class TransitionBuilder {
@@ -424,12 +436,10 @@ public class Nexum<S, E> {
             // Remove the last added transitions without guard/action
             lock.lock();
             try {
-                transitions.removeIf(t ->
-                    t.getFromState().equals(fromStates[0]) &&
-                    t.getToState().equals(toState) &&
-                    t.getEvent().equals(event));
-                // Add new transitions with guard and any previously set action
-                addTransition(fromStates, toState, event, guard, action);
+                for(@SuppressWarnings("unused") var __ : fromStates) {
+                    transitions.removeLast();
+                }
+                Nexum.this.addTransition(fromStates, toState, event, guard, action);
             } finally {
                 lock.unlock();
             }
@@ -447,12 +457,10 @@ public class Nexum<S, E> {
             // Remove the last added transitions
             lock.lock();
             try {
-                transitions.removeIf(t ->
-                    t.getFromState().equals(fromStates[0]) &&
-                    t.getToState().equals(toState) &&
-                    t.getEvent().equals(event));
-                // Add new transitions with action and any previously set guard
-                addTransition(fromStates, toState, event, guard, action);
+                for(@SuppressWarnings("unused") var __ : fromStates) {
+                    transitions.removeLast();
+                }
+                Nexum.this.addTransition(fromStates, toState, event, guard, action);
             } finally {
                 lock.unlock();
             }
@@ -472,6 +480,18 @@ public class Nexum<S, E> {
         }
 
         /**
+         * Start building a new scheduled transition
+         * Proxy method to allow seamless chaining
+         *
+         * @param fromStates The source states for the next scheduled transition
+         * @return A ScheduledTransitionBuilder for the next transition
+         */
+        @SafeVarargs
+        public final ScheduledTransitionBuilder fromScheduled(S... fromStates) {
+            return Nexum.this.fromScheduled(fromStates);
+        }
+
+        /**
          * Register a state handler
          * Proxy method to allow seamless chaining
          *
@@ -483,6 +503,17 @@ public class Nexum<S, E> {
         }
 
         /**
+         * Set a default handler for undefined transitions
+         * Proxy method to allow seamless chaining
+         *
+         * @param handler The default handler
+         * @return The parent Nexum instance for method chaining
+         */
+        public Nexum<S, E> setDefaultHandler(StateHandler<S, E> handler) {
+            return Nexum.this.setDefaultHandler(handler);
+        }
+
+        /**
          * Add a listener to receive state machine events
          * Proxy method to allow seamless chaining
          *
@@ -491,6 +522,69 @@ public class Nexum<S, E> {
          */
         public Nexum<S, E> addListener(NexumListener<S, E> listener) {
             return Nexum.this.addListener(listener);
+        }
+
+        /**
+         * Add a scheduled transition
+         * Proxy method to allow seamless chaining
+         *
+         * @param fromState The source state
+         * @param toState   The target state
+         * @param event     The event that triggers this transition
+         * @param delay     The delay before triggering the transition
+         * @param unit      The time unit of the delay
+         * @return The parent Nexum instance for method chaining
+         */
+        public Nexum<S, E> addScheduledTransition(S fromState, S toState, E event, long delay, TimeUnit unit) {
+            return Nexum.this.addScheduledTransition(fromState, toState, event, delay, unit);
+        }
+
+        /**
+         * Add a scheduled transition with a guard condition
+         * Proxy method to allow seamless chaining
+         *
+         * @param fromState The source state
+         * @param toState   The target state
+         * @param event     The event that triggers this transition
+         * @param delay     The delay before triggering the transition
+         * @param unit      The time unit of the delay
+         * @param guard     The guard condition
+         * @return The parent Nexum instance for method chaining
+         */
+        public Nexum<S, E> addScheduledTransition(S fromState, S toState, E event, long delay, TimeUnit unit,
+                Transition.TransitionGuard<S, E> guard) {
+            return Nexum.this.addScheduledTransition(fromState, toState, event, delay, unit, guard);
+        }
+
+        /**
+         * Add a scheduled transition with a guard and action
+         * Proxy method to allow seamless chaining
+         *
+         * @param fromState The source state
+         * @param toState   The target state
+         * @param event     The event that triggers this transition
+         * @param delay     The delay before triggering the transition
+         * @param unit      The time unit of the delay
+         * @param guard     The guard condition
+         * @param action    The action to execute
+         * @return The parent Nexum instance for method chaining
+         */
+        public Nexum<S, E> addScheduledTransition(S fromState, S toState, E event, long delay, TimeUnit unit,
+                Transition.TransitionGuard<S, E> guard, Transition.TransitionAction<S, E> action) {
+            return Nexum.this.addScheduledTransition(fromState, toState, event, delay, unit, guard, action);
+        }
+
+        /**
+         * Add a regular transition (non-fluent style)
+         * Proxy method to allow seamless chaining
+         *
+         * @param fromState The source state
+         * @param toState   The target state
+         * @param event     The event that triggers the transition
+         * @return The parent Nexum instance for method chaining
+         */
+        public Nexum<S, E> addTransition(S fromState, S toState, E event) {
+            return Nexum.this.addTransition(fromState, toState, event);
         }
 
         /**
@@ -522,6 +616,175 @@ public class Nexum<S, E> {
          */
         public void fireEvent(E event, Object eventData) throws NexumException {
             Nexum.this.fireEvent(event, eventData);
+        }
+    }
+
+    /**
+     * Fluent builder for creating scheduled transitions
+     */
+    public class ScheduledTransitionBuilder {
+        private final S[] fromStates;
+
+        @SafeVarargs
+        private ScheduledTransitionBuilder(S... fromStates) {
+            this.fromStates = fromStates;
+        }
+
+        /**
+         * Specify the target state for the scheduled transition
+         *
+         * @param toState The target state
+         * @return A ScheduledToStateBuilder for method chaining
+         */
+        public ScheduledToStateBuilder to(S toState) {
+            return new ScheduledToStateBuilder(fromStates, toState);
+        }
+    }
+
+    /**
+     * Builder for specifying the event and timing for scheduled transitions
+     */
+    public class ScheduledToStateBuilder {
+        private final S[] fromStates;
+        private final S toState;
+
+        private ScheduledToStateBuilder(S[] fromStates, S toState) {
+            this.fromStates = fromStates;
+            this.toState = toState;
+        }
+
+        /**
+         * Specify the event and delay for the scheduled transition
+         *
+         * @param event The event that triggers the transition
+         * @param delay The delay before triggering the transition
+         * @param unit  The time unit of the delay
+         * @return A ScheduledEventBuilder for adding optional guard and action
+         */
+        public ScheduledEventBuilder on(E event, long delay, TimeUnit unit) {
+            return new ScheduledEventBuilder(fromStates, toState, event, delay, unit);
+        }
+    }
+
+    /**
+     * Builder for adding optional guard and action to a scheduled transition
+     */
+    public class ScheduledEventBuilder {
+        private final S[] fromStates;
+        private final S toState;
+        private final E event;
+        private final long delay;
+        private final TimeUnit unit;
+        private Transition.TransitionGuard<S, E> guard;
+        private Transition.TransitionAction<S, E> action;
+
+        private ScheduledEventBuilder(S[] fromStates, S toState, E event, long delay, TimeUnit unit) {
+            this.fromStates = fromStates;
+            this.toState = toState;
+            this.event = event;
+            this.delay = delay;
+            this.unit = unit;
+            // Add basic scheduled transition immediately
+            for (S fromState : fromStates) {
+                addScheduledTransition(fromState, toState, event, delay, unit);
+            }
+        }
+
+        /**
+         * Add a guard condition to the scheduled transition
+         *
+         * @param guard The guard condition
+         * @return This instance for method chaining
+         */
+        public ScheduledEventBuilder withGuard(Transition.TransitionGuard<S, E> guard) {
+            this.guard = guard;
+            // Remove and re-add with guard
+            lock.lock();
+            try {
+                for (@SuppressWarnings("unused") var unused : fromStates) {
+                    transitions.removeLast();
+                    scheduledTransitions.removeLast();
+                }              
+                for (S fromState : fromStates) {
+                    addScheduledTransition(fromState, toState, event, delay, unit, guard, action);
+                }
+            } finally {
+                lock.unlock();
+            }
+            return this;
+        }
+
+        /**
+         * Add an action to the scheduled transition
+         *
+         * @param action The action to execute
+         * @return This instance for method chaining
+         */
+        public ScheduledEventBuilder withAction(Transition.TransitionAction<S, E> action) {
+            this.action = action;
+            // Remove and re-add with action
+            lock.lock();
+            try {
+                for (@SuppressWarnings("unused") var unused : fromStates) {
+                    transitions.removeLast();
+                    scheduledTransitions.removeLast();
+                }
+                for (S fromState : fromStates) {
+                    addScheduledTransition(fromState, toState, event, delay, unit, guard, action);
+                }
+            } finally {
+                lock.unlock();
+            }
+            return this;
+        }
+
+        /**
+         * Start building a new transition
+         *
+         * @param fromStates The source states for the next transition
+         * @return A TransitionBuilder for the next transition
+         */
+        @SafeVarargs
+        public final TransitionBuilder from(S... fromStates) {
+            return Nexum.this.from(fromStates);
+        }
+
+        /**
+         * Start building a new scheduled transition
+         *
+         * @param fromStates The source states for the next scheduled transition
+         * @return A ScheduledTransitionBuilder for the next transition
+         */
+        @SafeVarargs
+        public final ScheduledTransitionBuilder fromScheduled(S... fromStates) {
+            return Nexum.this.fromScheduled(fromStates);
+        }
+
+        /**
+         * Register a state handler
+         *
+         * @param handler The state handler
+         * @return The parent Nexum instance for method chaining
+         */
+        public Nexum<S, E> registerStateHandler(StateHandler<S, E> handler) {
+            return Nexum.this.registerStateHandler(handler);
+        }
+
+        /**
+         * Add a listener
+         *
+         * @param listener The listener to add
+         * @return The parent Nexum instance for method chaining
+         */
+        public Nexum<S, E> addListener(NexumListener<S, E> listener) {
+            return Nexum.this.addListener(listener);
+        }
+
+        /**
+         * Start the state machine
+         */
+        public void start() {
+            Nexum.this.start();
         }
     }
 
@@ -1153,5 +1416,13 @@ public class Nexum<S, E> {
         default void onError(Exception error) {
             // Default implementation does nothing
         }
+    }
+
+    public Integer getTransactionCount() {
+        return transitions.size();
+    }
+
+    public Integer getScheduledTransactionCount() {
+        return scheduledTransitions.size();
     }
 }

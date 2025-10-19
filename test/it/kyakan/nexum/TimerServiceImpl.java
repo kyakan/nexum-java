@@ -27,22 +27,24 @@ public class TimerServiceImpl implements TimerService {
     } 
 
     public void trigger() {
+        var task1 = (ArrayList<Runnable>)this.task1.clone();
+        task1.forEach(t->t.run());
         EXECUTED_COUNT++;
-        this.task1.forEach(t->t.run());
     }
     
     public void trigger(int index) {
-        EXECUTED_COUNT++;
         this.task1.get(index).run();
+        EXECUTED_COUNT++;
     }
 
     public void triggerPeriod() {
+        var task = (ArrayList<Runnable>)this.task.clone();
+        task.forEach(t -> t.run());
         EXECUTED_COUNT++;
-        this.task.forEach(t -> t.run());
     }
 
     public void triggerPeriod(int index) {
-        EXECUTED_COUNT++;
         this.task.get(index).run();
+        EXECUTED_COUNT++;
     }
 }

@@ -1,7 +1,11 @@
 package it.kyakan.nexum;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
+
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Test for the fluent API for creating transitions
@@ -15,10 +19,15 @@ public class FluentApiTest {
     enum Event {
         PLUG, UNPLUG, CHARGE_COMPLETE
     }
+    private Nexum<State, Event> sm;
+
+    @BeforeEach
+    public void setUp() {
+        sm = new Nexum<>(State.UNPLUGGED);
+    }
 
     @Test
     public void testFluentApiSingleState() {
-        Nexum<State, Event> sm = new Nexum<>(State.UNPLUGGED);
         
         // Test fluent API with single state
         sm.from(State.UNPLUGGED).to(State.PLUGGED).on(Event.PLUG);
@@ -30,7 +39,6 @@ public class FluentApiTest {
 
     @Test
     public void testFluentApiMultipleStates() {
-        Nexum<State, Event> sm = new Nexum<>(State.PLUGGED);
         
         // Test fluent API with multiple states - this is the main use case
         sm.from(State.UNPLUGGED, State.PLUGGED).to(State.UNPLUGGED).on(Event.UNPLUG);
@@ -48,8 +56,7 @@ public class FluentApiTest {
 
     @Test
     public void testFluentApiWithGuard() {
-        Nexum<State, Event> sm = new Nexum<>(State.PLUGGED);
-        
+        sm.reset(State.PLUGGED);
         // Add transition with guard
         sm.from(State.PLUGGED).to(State.CHARGING).on(Event.PLUG,
             (context, event, eventData) -> context.get("battery") != null);
@@ -67,7 +74,7 @@ public class FluentApiTest {
 
     @Test
     public void testFluentApiWithGuardAndAction() {
-        Nexum<State, Event> sm = new Nexum<>(State.CHARGING);
+        sm.reset(State.CHARGING);
         
         // Add transition with guard and action
         sm.from(State.CHARGING).to(State.FULL).on(Event.CHARGE_COMPLETE,
@@ -82,7 +89,7 @@ public class FluentApiTest {
 
     @Test
     public void testFluentApiWithMultipleEvents() {
-        Nexum<State, Event> sm = new Nexum<>(State.PLUGGED);
+        sm.reset(State.PLUGGED);
         
         // Test onAny with multiple events
         sm.from(State.PLUGGED, State.CHARGING).to(State.UNPLUGGED)
@@ -96,7 +103,6 @@ public class FluentApiTest {
 
     @Test
     public void testFluentApiChaining() {
-        Nexum<State, Event> sm = new Nexum<>(State.UNPLUGGED);
         
         // Test method chaining
         sm.from(State.UNPLUGGED).to(State.PLUGGED).on(Event.PLUG)
@@ -122,23 +128,63 @@ public class FluentApiTest {
 
     @Test
     public void testComparisonWithOldApi() {
-        // Old API style
-        Nexum<State, Event> sm1 = new Nexum<>(State.UNPLUGGED);
-        sm1.addTransition(new State[] {State.UNPLUGGED, State.PLUGGED}, State.UNPLUGGED, Event.UNPLUG);
-        
+        sm.reset(State.PLUGGED);
+        sm.from(State.UNPLUGGED, State.PLUGGED).to(State.UNPLUGGED).on(Event.UNPLUG);
+
         // New fluent API style
         Nexum<State, Event> sm2 = new Nexum<>(State.UNPLUGGED);
         sm2.from(State.UNPLUGGED, State.PLUGGED).to(State.UNPLUGGED).on(Event.UNPLUG);
         
         // Both should work the same way
-        sm1.start();
+        sm.start();
         sm2.start();
         
-        sm1.fireEvent(Event.UNPLUG);
+        sm.fireEvent(Event.UNPLUG);
         sm2.fireEvent(Event.UNPLUG);
         
-        assertEquals(sm1.getCurrentState(), sm2.getCurrentState());
+        assertEquals(sm.getCurrentState(), sm2.getCurrentState());
     }
+
+    @Test
+    public void testFluentBuilds() {
+        AtomicBoolean actionExecuted = new AtomicBoolean(false);
+        sm.reset(State.UNPLUGGED);
+        
+        // Scheduled transition from multiple states
+        sm.from(State.UNPLUGGED, State.CHARGING).to(State.PLUGGED).on(Event.PLUG)
+            .withGuard((context, event, data) -> true)
+            .withAction((context, event, data) -> actionExecuted.set(true));
+        sm.start();
+        
+        assertEquals(2, sm.getTransactionCount());
+        assertEquals(0, sm.getScheduledTransactionCount());
+    }
+
+    @Test
+    public void testFluentActionsBuilds() {
+        AtomicBoolean actionExecuted = new AtomicBoolean(false);
+        
+        // Scheduled transition from multiple states
+        sm.from(State.UNPLUGGED, State.CHARGING).to(State.PLUGGED).on(Event.PLUG)
+            .withAction((context, event, data) -> actionExecuted.set(true));
+        sm.start();
+        
+        assertEquals(2, sm.getTransactionCount());
+        assertEquals(0, sm.getScheduledTransactionCount());
+    }
+
+
+    @Test
+    public void testFluentGuardBuilds() {
+        // Scheduled transition from multiple states
+        sm.from(State.UNPLUGGED, State.CHARGING).to(State.PLUGGED).on(Event.PLUG)
+            .withGuard((context, event, data) -> true);
+        sm.start();
+        
+        assertEquals(2, sm.getTransactionCount());
+        assertEquals(0, sm.getScheduledTransactionCount());
+    }
+
 
     @Test
     public void testFluentApiWithGuardMethod() {
