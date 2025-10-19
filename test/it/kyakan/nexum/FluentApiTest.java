@@ -139,4 +139,99 @@ public class FluentApiTest {
         
         assertEquals(sm1.getCurrentState(), sm2.getCurrentState());
     }
+
+    @Test
+    public void testFluentApiWithGuardMethod() {
+        Nexum<State, Event> sm = new Nexum<>(State.PLUGGED);
+        
+        // New fluent style with withGuard - no build() needed!
+        sm.from(State.PLUGGED).to(State.CHARGING).on(Event.PLUG)
+            .withGuard((context, event, eventData) -> context.get("battery") != null);
+        sm.start();
+        
+        // Should not transition without battery data
+        assertThrows(NexumException.class, () -> sm.fireEvent(Event.PLUG));
+        assertEquals(State.PLUGGED, sm.getCurrentState());
+        
+        // Should transition with battery data
+        sm.getContext().put("battery", 50);
+        sm.fireEvent(Event.PLUG);
+        assertEquals(State.CHARGING, sm.getCurrentState());
+    }
+
+    @Test
+    public void testFluentApiWithActionMethod() {
+        Nexum<State, Event> sm = new Nexum<>(State.CHARGING);
+        
+        // New fluent style with withAction - no build() needed!
+        sm.from(State.CHARGING).to(State.FULL).on(Event.CHARGE_COMPLETE)
+            .withAction((context, event, eventData) -> context.put("charged", true));
+        sm.start();
+        
+        sm.fireEvent(Event.CHARGE_COMPLETE);
+        assertEquals(State.FULL, sm.getCurrentState());
+        assertTrue((Boolean) sm.getContext().get("charged"));
+    }
+
+    @Test
+    public void testFluentApiWithGuardAndActionMethods() {
+        Nexum<State, Event> sm = new Nexum<>(State.PLUGGED);
+        
+        // New fluent style with both withGuard and withAction - no build() needed!
+        sm.from(State.PLUGGED).to(State.CHARGING).on(Event.PLUG)
+            .withGuard((context, event, eventData) -> context.get("battery") != null)
+            .withAction((context, event, eventData) -> {
+                context.put("chargingStarted", true);
+                context.put("startTime", System.currentTimeMillis());
+            });
+        sm.start();
+        
+        sm.getContext().put("battery", 50);
+        sm.fireEvent(Event.PLUG);
+        
+        assertEquals(State.CHARGING, sm.getCurrentState());
+        assertTrue((Boolean) sm.getContext().get("chargingStarted"));
+        assertNotNull(sm.getContext().get("startTime"));
+    }
+
+    @Test
+    public void testFluentApiChainingWithBuilder() {
+        Nexum<State, Event> sm = new Nexum<>(State.UNPLUGGED);
+        
+        // Test chaining with the new builder pattern - no build() needed!
+        sm.from(State.UNPLUGGED).to(State.PLUGGED).on(Event.PLUG)
+            .withAction((context, event, eventData) -> context.put("plugged", true))
+            .from(State.PLUGGED).to(State.CHARGING).on(Event.PLUG)
+            .withGuard((context, event, eventData) -> context.get("plugged") != null)
+            .withAction((context, event, eventData) -> context.put("charging", true));
+        
+        sm.start();
+        
+        sm.fireEvent(Event.PLUG);
+        assertEquals(State.PLUGGED, sm.getCurrentState());
+        assertTrue((Boolean) sm.getContext().get("plugged"));
+        
+        sm.fireEvent(Event.PLUG);
+        assertEquals(State.CHARGING, sm.getCurrentState());
+        assertTrue((Boolean) sm.getContext().get("charging"));
+    }
+
+    @Test
+    public void testFluentApiWithoutBuild() {
+        Nexum<State, Event> sm = new Nexum<>(State.UNPLUGGED);
+        
+        // Test that build() is not needed at all!
+        sm.from(State.UNPLUGGED).to(State.PLUGGED).on(Event.PLUG)
+            .withAction((context, event, eventData) -> context.put("action1", true))
+            .from(State.PLUGGED).to(State.UNPLUGGED).on(Event.UNPLUG)
+            .withAction((context, event, eventData) -> context.put("action2", true));
+        
+        sm.start();
+        
+        sm.fireEvent(Event.PLUG);
+        assertTrue((Boolean) sm.getContext().get("action1"));
+        
+        sm.fireEvent(Event.UNPLUG);
+        assertTrue((Boolean) sm.getContext().get("action2"));
+    }
 }

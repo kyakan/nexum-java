@@ -178,32 +178,57 @@ sm.from(DISCONNECTED).to(CONNECTING).on(CONNECT);
 // Multiple source states
 sm.from(CONNECTED, BUSY).to(DISCONNECTED).on(DISCONNECT);
 
-// With guard condition
+// With guard condition - new improved syntax with withGuard()
+sm.from(CONNECTING).to(CONNECTED).on(CONNECT)
+    .withGuard((context, event, data) -> context.get("valid") != null);
+
+// With action - new improved syntax with withAction()
+sm.from(CONNECTED).to(BUSY).on(START_OPERATION)
+    .withAction((context, event, data) -> context.put("startTime", System.currentTimeMillis()));
+
+// With both guard and action - chain them together!
+sm.from(PLUGGED).to(CHARGING).on(PLUG)
+    .withGuard((context, event, data) -> context.get("battery") != null)
+    .withAction((context, event, data) -> {
+        context.put("chargingStarted", true);
+        context.put("startTime", System.currentTimeMillis());
+    });
+
+// Legacy syntax still supported
 sm.from(CONNECTING).to(CONNECTED).on(CONNECT,
     (context, event, data) -> context.get("valid") != null);
-
-// With guard and action
-sm.from(CONNECTED).to(BUSY).on(START_OPERATION,
-    (context, event, data) -> true,
-    (context, event, data) -> context.put("startTime", System.currentTimeMillis()));
 
 // Multiple events using onAny
 sm.from(BUSY, ERROR).to(DISCONNECTED).onAny(DISCONNECT, ERROR_OCCURRED);
 
-// Method chaining
+// Method chaining with the new builder pattern - no build() needed!
 sm.from(DISCONNECTED).to(CONNECTING).on(CONNECT)
-  .from(CONNECTING).to(CONNECTED).on(CONNECT)
-  .from(CONNECTED).to(BUSY).on(START_OPERATION)
-  .from(BUSY).to(CONNECTED).on(OPERATION_COMPLETE);
+    .withAction((context, event, data) -> context.put("connecting", true))
+    .from(CONNECTING).to(CONNECTED).on(CONNECT)
+    .withGuard((context, event, data) -> context.get("connecting") != null)
+    .from(CONNECTED).to(BUSY).on(START_OPERATION)
+    .from(BUSY).to(CONNECTED).on(OPERATION_COMPLETE);
+
+// You can even call start() directly after the fluent chain
+sm.from(DISCONNECTED).to(CONNECTING).on(CONNECT)
+    .withAction((context, event, data) -> context.put("ready", true))
+    .start();
 ```
 
 ### Available Methods
 
+#### Basic Methods
 - **`from(S... states)`** - Start building a transition from one or more source states
 - **`to(S state)`** - Specify the target state
 - **`on(E event)`** - Specify the event that triggers the transition
-- **`on(E event, guard)`** - Add a guard condition
-- **`on(E event, guard, action)`** - Add guard and action
+
+#### Optional Modifiers (New!)
+- **`withGuard(guard)`** - Add a guard condition to the transition
+- **`withAction(action)`** - Add an action to execute during the transition
+
+#### Legacy Methods (Still Supported)
+- **`on(E event, guard)`** - Add a guard condition (legacy syntax)
+- **`on(E event, guard, action)`** - Add guard and action (legacy syntax)
 - **`onAny(E... events)`** - Trigger on any of the specified events
 - **`onAny(guard, E... events)`** - Multiple events with guard
 - **`onAny(guard, action, E... events)`** - Multiple events with guard and action
@@ -211,10 +236,11 @@ sm.from(DISCONNECTED).to(CONNECTING).on(CONNECT)
 ### Benefits
 
 - **More readable**: The fluent syntax reads like natural language
-- **Less verbose**: No need to create arrays explicitly
+- **Less verbose**: No need to create arrays explicitly or call build()
+- **Flexible**: Choose between `.withGuard()/.withAction()` or legacy syntax
 - **Type-safe**: Full compile-time type checking
-- **Flexible**: Supports all transition features (guards, actions, multiple states/events)
-- **Chainable**: Build complex state machines with method chaining
+- **Chainable**: Build complex state machines with seamless method chaining
+- **No build() required**: Transitions are automatically finalized when you chain to another method or call state machine methods
 
 ## Features
 

@@ -322,16 +322,20 @@ public class Nexum<S, E> {
 
         /**
          * Specify the event that triggers the transition
+         * Returns a Nexum instance that can be used for chaining or for adding guard/action
          *
          * @param event The event
-         * @return The Nexum instance for method chaining
+         * @return A NexumWithModifier that allows optional guard and action configuration
          */
-        public Nexum<S, E> on(E event) {
-            return addTransition(fromStates, toState, event);
+        public NexumWithModifier on(E event) {
+            // Add the basic transition immediately
+            addTransition(fromStates, toState, event);
+            // Return a wrapper that allows modifying the last added transition
+            return new NexumWithModifier(fromStates, toState, event);
         }
 
         /**
-         * Specify the event and guard condition
+         * Specify the event and guard condition (legacy method)
          *
          * @param event The event
          * @param guard The guard condition
@@ -342,7 +346,7 @@ public class Nexum<S, E> {
         }
 
         /**
-         * Specify the event, guard condition, and action
+         * Specify the event, guard condition, and action (legacy method)
          *
          * @param event  The event
          * @param guard  The guard condition
@@ -389,6 +393,135 @@ public class Nexum<S, E> {
         public final Nexum<S, E> onAny(Transition.TransitionGuard<S, E> guard,
                 Transition.TransitionAction<S, E> action, E... events) {
             return addTransition(fromStates, toState, events, guard, action);
+        }
+    }
+
+    /**
+     * Builder that allows modifying the last added transition with guard and action
+     * This class acts as a proxy to Nexum, allowing seamless chaining without requiring build()
+     */
+    public class NexumWithModifier {
+        private final S[] fromStates;
+        private final S toState;
+        private final E event;
+        private Transition.TransitionGuard<S, E> guard;
+        private Transition.TransitionAction<S, E> action;
+
+        private NexumWithModifier(S[] fromStates, S toState, E event) {
+            this.fromStates = fromStates;
+            this.toState = toState;
+            this.event = event;
+        }
+
+        /**
+         * Replace the last added transition with one that includes a guard
+         *
+         * @param guard The guard condition
+         * @return This instance for method chaining
+         */
+        public NexumWithModifier withGuard(Transition.TransitionGuard<S, E> guard) {
+            this.guard = guard;
+            // Remove the last added transitions without guard/action
+            lock.lock();
+            try {
+                transitions.removeIf(t ->
+                    t.getFromState().equals(fromStates[0]) &&
+                    t.getToState().equals(toState) &&
+                    t.getEvent().equals(event));
+                // Add new transitions with guard and any previously set action
+                addTransition(fromStates, toState, event, guard, action);
+            } finally {
+                lock.unlock();
+            }
+            return this;
+        }
+
+        /**
+         * Replace the last added transition with one that includes an action
+         *
+         * @param action The action to execute
+         * @return This instance for method chaining
+         */
+        public NexumWithModifier withAction(Transition.TransitionAction<S, E> action) {
+            this.action = action;
+            // Remove the last added transitions
+            lock.lock();
+            try {
+                transitions.removeIf(t ->
+                    t.getFromState().equals(fromStates[0]) &&
+                    t.getToState().equals(toState) &&
+                    t.getEvent().equals(event));
+                // Add new transitions with action and any previously set guard
+                addTransition(fromStates, toState, event, guard, action);
+            } finally {
+                lock.unlock();
+            }
+            return this;
+        }
+
+        /**
+         * Start building a new transition
+         * No need to call build() - this method automatically finalizes the current transition
+         *
+         * @param fromStates The source states for the next transition
+         * @return A TransitionBuilder for the next transition
+         */
+        @SafeVarargs
+        public final TransitionBuilder from(S... fromStates) {
+            return Nexum.this.from(fromStates);
+        }
+
+        /**
+         * Register a state handler
+         * Proxy method to allow seamless chaining
+         *
+         * @param handler The state handler
+         * @return The parent Nexum instance for method chaining
+         */
+        public Nexum<S, E> registerStateHandler(StateHandler<S, E> handler) {
+            return Nexum.this.registerStateHandler(handler);
+        }
+
+        /**
+         * Add a listener to receive state machine events
+         * Proxy method to allow seamless chaining
+         *
+         * @param listener The listener to add
+         * @return The parent Nexum instance for method chaining
+         */
+        public Nexum<S, E> addListener(NexumListener<S, E> listener) {
+            return Nexum.this.addListener(listener);
+        }
+
+        /**
+         * Start the state machine
+         * Proxy method to allow seamless chaining
+         */
+        public void start() {
+            Nexum.this.start();
+        }
+
+        /**
+         * Fire an event to trigger a state transition
+         * Proxy method to allow seamless chaining
+         *
+         * @param event The event to fire
+         * @throws NexumException If the transition fails
+         */
+        public void fireEvent(E event) throws NexumException {
+            Nexum.this.fireEvent(event);
+        }
+
+        /**
+         * Fire an event with associated data
+         * Proxy method to allow seamless chaining
+         *
+         * @param event     The event to fire
+         * @param eventData Optional data associated with the event
+         * @throws NexumException If the transition fails
+         */
+        public void fireEvent(E event, Object eventData) throws NexumException {
+            Nexum.this.fireEvent(event, eventData);
         }
     }
 
