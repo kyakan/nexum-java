@@ -1,5 +1,6 @@
 package it.kyakan.nexum;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -40,14 +41,14 @@ public class ScheduledTransitionTest {
         stateMachine.start();
 
         // Verify that the timer service was called to schedule the transition
-        assertTrue(timerService.SCHEDULED_COUNT == 1, "Scheduled transition should be scheduled");
-        assertTrue(timerService.EXECUTED_COUNT == 0, "Scheduled transition should be not executed");
+        assertEquals(timerService.SCHEDULED_COUNT, 1, "Scheduled transition should be scheduled");
+        assertEquals(timerService.EXECUTED_COUNT, 0, "Scheduled transition should be not executed");
         assertFalse(eventTriggered.get(), "Scheduled transition should be not executed");
 
         timerService.trigger();
 
-        assertTrue(timerService.SCHEDULED_COUNT == 1, "Scheduled transition should be scheduled");
-        assertTrue(timerService.EXECUTED_COUNT == 1, "Scheduled transition should be executed");
+        assertEquals(timerService.SCHEDULED_COUNT, 1, "Scheduled transition should be scheduled");
+        assertEquals(timerService.EXECUTED_COUNT, 1, "Scheduled transition should be executed");
         assertTrue(eventTriggered.get(), "Action transition should be executed");
     }
 
@@ -65,17 +66,74 @@ public class ScheduledTransitionTest {
             .addTransition(TestState.STATE_A, TestState.STATE_C, TestEvent.EVENT_Y)
             .start();
 
-        assertTrue(timerService.SCHEDULED_COUNT == 1, "Scheduled transition should be not scheduled");
-        assertTrue(timerService.EXECUTED_COUNT == 0, "Scheduled transition should be not executed");
+        assertEquals(timerService.SCHEDULED_COUNT, 1, "Scheduled transition should be not scheduled");
+        assertEquals(timerService.EXECUTED_COUNT, 0, "Scheduled transition should be not executed");
         assertFalse(eventTriggered.get(), "Scheduled transition should be not executed");
 
         stateMachine.fireEvent(TestEvent.EVENT_Y);
 
         timerService.trigger();
 
-        assertTrue(timerService.SCHEDULED_COUNT == 1, "Scheduled transition should be not scheduled");
-        assertTrue(timerService.EXECUTED_COUNT == 1, "Scheduled transition should be not executed");
+        assertEquals(timerService.SCHEDULED_COUNT, 1, "Scheduled transition should be not scheduled");
+        assertEquals(timerService.EXECUTED_COUNT, 1, "Scheduled transition should be not executed");
         assertFalse(eventTriggered.get(), "Action transition should be not executed");
+    }
+
+
+    @Test
+    public void testMultipleScheduledTransition() {
+        // Flag to check if the event was triggered
+        AtomicBoolean eventTriggered = new AtomicBoolean(false);
+        AtomicBoolean eventTriggeredB = new AtomicBoolean(false);
+
+
+        // Add a scheduled transition from STATE_A to STATE_B after 100ms
+        stateMachine
+            .addScheduledTransition(TestState.STATE_A, TestState.STATE_A, TestEvent.EVENT_X, 100, TimeUnit.MILLISECONDS, null, (a,b,c) -> {
+                eventTriggered.set(true);
+            })
+            .addScheduledTransition(TestState.STATE_A, TestState.STATE_A, TestEvent.EVENT_Y, 1000, TimeUnit.MILLISECONDS, null, (a,b,c) -> {
+                eventTriggeredB.set(true);
+            })
+            .start();
+
+        assertEquals(timerService.SCHEDULED_COUNT, 2, "Scheduled transition should be not scheduled");
+        assertEquals(timerService.EXECUTED_COUNT, 0, "Scheduled transition should be not executed");
+        assertFalse(eventTriggered.get(), "Scheduled transition should be not executed");
+        assertFalse(eventTriggeredB.get(), "Scheduled transition should be not executed");
+
+        timerService.triggerPrevious();
+        assertEquals(timerService.SCHEDULED_COUNT, 2, "Scheduled transition should be scheduled");
+        assertEquals(timerService.EXECUTED_COUNT, 1, "Scheduled transition should be executed");
+        assertTrue(eventTriggered.get(), "Scheduled transition should be executed");
+        assertFalse(eventTriggeredB.get(), "Scheduled transition should be not executed");
+        timerService.triggerPrevious();
+        assertEquals(timerService.SCHEDULED_COUNT, 2, "Scheduled transition should be scheduled");
+        assertEquals(timerService.EXECUTED_COUNT, 2, "Scheduled transition should be executed");
+        assertTrue(eventTriggered.get(), "Scheduled transition should be executed");
+        assertFalse(eventTriggeredB.get(), "Scheduled transition should be not executed");
+        timerService.triggerPrevious();
+        assertEquals(timerService.SCHEDULED_COUNT, 2, "Scheduled transition should be scheduled");
+        assertEquals(timerService.EXECUTED_COUNT, 3, "Scheduled transition should be executed");
+        assertTrue(eventTriggered.get(), "Scheduled transition should be executed");
+        assertFalse(eventTriggeredB.get(), "Scheduled transition should be not executed");
+        timerService.triggerPrevious();
+        assertEquals(timerService.SCHEDULED_COUNT, 2, "Scheduled transition should be scheduled");
+        assertEquals(timerService.EXECUTED_COUNT, 4, "Scheduled transition should be executed");
+        assertTrue(eventTriggered.get(), "Scheduled transition should be executed");
+        assertFalse(eventTriggeredB.get(), "Scheduled transition should be not executed");
+
+        eventTriggered.set(false);
+        timerService.trigger();
+        assertEquals(timerService.SCHEDULED_COUNT, 2, "Scheduled transition should be scheduled");
+        assertEquals(timerService.EXECUTED_COUNT, 5, "Scheduled transition should be executed");
+        assertFalse(eventTriggered.get(), "Scheduled transition should be not executed");
+        assertTrue(eventTriggeredB.get(), "Scheduled transition should be executed");
+        timerService.triggerPrevious();
+        assertEquals(timerService.SCHEDULED_COUNT, 2, "Scheduled transition should be scheduled");
+        assertEquals(timerService.EXECUTED_COUNT, 6, "Scheduled transition should be executed");
+        assertTrue(eventTriggered.get(), "Scheduled transition should be executed");
+        assertTrue(eventTriggeredB.get(), "Scheduled transition should be executed");
     }
 
 }
