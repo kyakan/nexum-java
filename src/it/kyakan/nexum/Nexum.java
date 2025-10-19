@@ -113,6 +113,168 @@ public class Nexum<S, E> {
     }
 
     /**
+     * Add multiple transitions from an array of source states to a single target state
+     * This creates one transition for each source state to the target state with the same event
+     *
+     * @param fromStates Array of source states
+     * @param toState    The target state
+     * @param event      The event that triggers the transitions
+     * @return This state machine for method chaining
+     */
+    public Nexum<S, E> addTransition(S[] fromStates, S toState, E event) {
+        for (S fromState : fromStates) {
+            addTransition(fromState, toState, event);
+        }
+        return this;
+    }
+
+    /**
+     * Add multiple transitions from an array of source states to a single target state with a guard
+     *
+     * @param fromStates Array of source states
+     * @param toState    The target state
+     * @param event      The event that triggers the transitions
+     * @param guard      The guard condition
+     * @return This state machine for method chaining
+     */
+    public Nexum<S, E> addTransition(S[] fromStates, S toState, E event,
+            Transition.TransitionGuard<S, E> guard) {
+        for (S fromState : fromStates) {
+            addTransition(fromState, toState, event, guard);
+        }
+        return this;
+    }
+
+    /**
+     * Add multiple transitions from an array of source states to a single target state with a guard and action
+     *
+     * @param fromStates Array of source states
+     * @param toState    The target state
+     * @param event      The event that triggers the transitions
+     * @param guard      The guard condition
+     * @param action     The action to execute
+     * @return This state machine for method chaining
+     */
+    public Nexum<S, E> addTransition(S[] fromStates, S toState, E event,
+            Transition.TransitionGuard<S, E> guard,
+            Transition.TransitionAction<S, E> action) {
+        for (S fromState : fromStates) {
+            addTransition(fromState, toState, event, guard, action);
+        }
+        return this;
+    }
+
+    /**
+     * Add multiple transitions from a single source state to a single target state with multiple events
+     * This creates one transition for each event from the source state to the target state
+     *
+     * @param fromState The source state
+     * @param toState   The target state
+     * @param events    Array of events that trigger the transitions
+     * @return This state machine for method chaining
+     */
+    public Nexum<S, E> addTransition(S fromState, S toState, E[] events) {
+        for (E event : events) {
+            addTransition(fromState, toState, event);
+        }
+        return this;
+    }
+
+    /**
+     * Add multiple transitions from a single source state to a single target state with multiple events and a guard
+     *
+     * @param fromState The source state
+     * @param toState   The target state
+     * @param events    Array of events that trigger the transitions
+     * @param guard     The guard condition
+     * @return This state machine for method chaining
+     */
+    public Nexum<S, E> addTransition(S fromState, S toState, E[] events,
+            Transition.TransitionGuard<S, E> guard) {
+        for (E event : events) {
+            addTransition(fromState, toState, event, guard);
+        }
+        return this;
+    }
+
+    /**
+     * Add multiple transitions from a single source state to a single target state with multiple events, guard and action
+     *
+     * @param fromState The source state
+     * @param toState   The target state
+     * @param events    Array of events that trigger the transitions
+     * @param guard     The guard condition
+     * @param action    The action to execute
+     * @return This state machine for method chaining
+     */
+    public Nexum<S, E> addTransition(S fromState, S toState, E[] events,
+            Transition.TransitionGuard<S, E> guard,
+            Transition.TransitionAction<S, E> action) {
+        for (E event : events) {
+            addTransition(fromState, toState, event, guard, action);
+        }
+        return this;
+    }
+
+    /**
+     * Add multiple transitions from multiple source states to a single target state with multiple events
+     * This creates one transition for each combination of source state and event
+     *
+     * @param fromStates Array of source states
+     * @param toState    The target state
+     * @param events     Array of events that trigger the transitions
+     * @return This state machine for method chaining
+     */
+    public Nexum<S, E> addTransition(S[] fromStates, S toState, E[] events) {
+        for (S fromState : fromStates) {
+            for (E event : events) {
+                addTransition(fromState, toState, event);
+            }
+        }
+        return this;
+    }
+
+    /**
+     * Add multiple transitions from multiple source states to a single target state with multiple events and a guard
+     *
+     * @param fromStates Array of source states
+     * @param toState    The target state
+     * @param events     Array of events that trigger the transitions
+     * @param guard      The guard condition
+     * @return This state machine for method chaining
+     */
+    public Nexum<S, E> addTransition(S[] fromStates, S toState, E[] events,
+            Transition.TransitionGuard<S, E> guard) {
+        for (S fromState : fromStates) {
+            for (E event : events) {
+                addTransition(fromState, toState, event, guard);
+            }
+        }
+        return this;
+    }
+
+    /**
+     * Add multiple transitions from multiple source states to a single target state with multiple events, guard and action
+     *
+     * @param fromStates Array of source states
+     * @param toState    The target state
+     * @param events     Array of events that trigger the transitions
+     * @param guard      The guard condition
+     * @param action     The action to execute
+     * @return This state machine for method chaining
+     */
+    public Nexum<S, E> addTransition(S[] fromStates, S toState, E[] events,
+            Transition.TransitionGuard<S, E> guard,
+            Transition.TransitionAction<S, E> action) {
+        for (S fromState : fromStates) {
+            for (E event : events) {
+                addTransition(fromState, toState, event, guard, action);
+            }
+        }
+        return this;
+    }
+
+    /**
      * Add a scheduled transition to the state machine
      *
      * @param fromState The source state
@@ -165,6 +327,180 @@ public class Nexum<S, E> {
         } finally {
             lock.unlock();
         }
+    }
+
+    /**
+     * Add multiple scheduled transitions from an array of source states to a single target state
+     *
+     * @param fromStates Array of source states
+     * @param toState    The target state
+     * @param event      The event that triggers the transitions
+     * @param delay      The delay before triggering the transition
+     * @param unit       The time unit of the delay
+     * @return This state machine for method chaining
+     */
+    public Nexum<S, E> addScheduledTransition(S[] fromStates, S toState, E event, long delay, TimeUnit unit) {
+        for (S fromState : fromStates) {
+            addScheduledTransition(fromState, toState, event, delay, unit);
+        }
+        return this;
+    }
+
+    /**
+     * Add multiple scheduled transitions from an array of source states to a single target state with a guard
+     *
+     * @param fromStates Array of source states
+     * @param toState    The target state
+     * @param event      The event that triggers the transitions
+     * @param delay      The delay before triggering the transition
+     * @param unit       The time unit of the delay
+     * @param guard      The guard condition
+     * @return This state machine for method chaining
+     */
+    public Nexum<S, E> addScheduledTransition(S[] fromStates, S toState, E event, long delay, TimeUnit unit,
+            Transition.TransitionGuard<S, E> guard) {
+        for (S fromState : fromStates) {
+            addScheduledTransition(fromState, toState, event, delay, unit, guard);
+        }
+        return this;
+    }
+
+    /**
+     * Add multiple scheduled transitions from an array of source states to a single target state with a guard and action
+     *
+     * @param fromStates Array of source states
+     * @param toState    The target state
+     * @param event      The event that triggers the transitions
+     * @param delay      The delay before triggering the transition
+     * @param unit       The time unit of the delay
+     * @param guard      The guard condition
+     * @param action     The action to execute
+     * @return This state machine for method chaining
+     */
+    public Nexum<S, E> addScheduledTransition(S[] fromStates, S toState, E event, long delay, TimeUnit unit,
+            Transition.TransitionGuard<S, E> guard, Transition.TransitionAction<S, E> action) {
+        for (S fromState : fromStates) {
+            addScheduledTransition(fromState, toState, event, delay, unit, guard, action);
+        }
+        return this;
+    }
+
+    /**
+     * Add multiple scheduled transitions from a single source state to a single target state with multiple events
+     *
+     * @param fromState The source state
+     * @param toState   The target state
+     * @param events    Array of events that trigger the transitions
+     * @param delay     The delay before triggering the transition
+     * @param unit      The time unit of the delay
+     * @return This state machine for method chaining
+     */
+    public Nexum<S, E> addScheduledTransition(S fromState, S toState, E[] events, long delay, TimeUnit unit) {
+        for (E event : events) {
+            addScheduledTransition(fromState, toState, event, delay, unit);
+        }
+        return this;
+    }
+
+    /**
+     * Add multiple scheduled transitions from a single source state to a single target state with multiple events and a guard
+     *
+     * @param fromState The source state
+     * @param toState   The target state
+     * @param events    Array of events that trigger the transitions
+     * @param delay     The delay before triggering the transition
+     * @param unit      The time unit of the delay
+     * @param guard     The guard condition
+     * @return This state machine for method chaining
+     */
+    public Nexum<S, E> addScheduledTransition(S fromState, S toState, E[] events, long delay, TimeUnit unit,
+            Transition.TransitionGuard<S, E> guard) {
+        for (E event : events) {
+            addScheduledTransition(fromState, toState, event, delay, unit, guard);
+        }
+        return this;
+    }
+
+    /**
+     * Add multiple scheduled transitions from a single source state to a single target state with multiple events, guard and action
+     *
+     * @param fromState The source state
+     * @param toState   The target state
+     * @param events    Array of events that trigger the transitions
+     * @param delay     The delay before triggering the transition
+     * @param unit      The time unit of the delay
+     * @param guard     The guard condition
+     * @param action    The action to execute
+     * @return This state machine for method chaining
+     */
+    public Nexum<S, E> addScheduledTransition(S fromState, S toState, E[] events, long delay, TimeUnit unit,
+            Transition.TransitionGuard<S, E> guard, Transition.TransitionAction<S, E> action) {
+        for (E event : events) {
+            addScheduledTransition(fromState, toState, event, delay, unit, guard, action);
+        }
+        return this;
+    }
+
+    /**
+     * Add multiple scheduled transitions from multiple source states to a single target state with multiple events
+     *
+     * @param fromStates Array of source states
+     * @param toState    The target state
+     * @param events     Array of events that trigger the transitions
+     * @param delay      The delay before triggering the transition
+     * @param unit       The time unit of the delay
+     * @return This state machine for method chaining
+     */
+    public Nexum<S, E> addScheduledTransition(S[] fromStates, S toState, E[] events, long delay, TimeUnit unit) {
+        for (S fromState : fromStates) {
+            for (E event : events) {
+                addScheduledTransition(fromState, toState, event, delay, unit);
+            }
+        }
+        return this;
+    }
+
+    /**
+     * Add multiple scheduled transitions from multiple source states to a single target state with multiple events and a guard
+     *
+     * @param fromStates Array of source states
+     * @param toState    The target state
+     * @param events     Array of events that trigger the transitions
+     * @param delay      The delay before triggering the transition
+     * @param unit       The time unit of the delay
+     * @param guard      The guard condition
+     * @return This state machine for method chaining
+     */
+    public Nexum<S, E> addScheduledTransition(S[] fromStates, S toState, E[] events, long delay, TimeUnit unit,
+            Transition.TransitionGuard<S, E> guard) {
+        for (S fromState : fromStates) {
+            for (E event : events) {
+                addScheduledTransition(fromState, toState, event, delay, unit, guard);
+            }
+        }
+        return this;
+    }
+
+    /**
+     * Add multiple scheduled transitions from multiple source states to a single target state with multiple events, guard and action
+     *
+     * @param fromStates Array of source states
+     * @param toState    The target state
+     * @param events     Array of events that trigger the transitions
+     * @param delay      The delay before triggering the transition
+     * @param unit       The time unit of the delay
+     * @param guard      The guard condition
+     * @param action     The action to execute
+     * @return This state machine for method chaining
+     */
+    public Nexum<S, E> addScheduledTransition(S[] fromStates, S toState, E[] events, long delay, TimeUnit unit,
+            Transition.TransitionGuard<S, E> guard, Transition.TransitionAction<S, E> action) {
+        for (S fromState : fromStates) {
+            for (E event : events) {
+                addScheduledTransition(fromState, toState, event, delay, unit, guard, action);
+            }
+        }
+        return this;
     }
 
     /**
@@ -498,6 +834,9 @@ public class Nexum<S, E> {
 
             // Set new state
             context.setCurrentState(newState);
+
+            // Schedule transitions for the new state
+            scheduleTransitionsForState(newState);
 
             // Call onEnter for new state
             StateHandler<S, E> newHandler = stateHandlers.get(newState);

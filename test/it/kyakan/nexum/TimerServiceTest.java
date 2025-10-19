@@ -46,7 +46,7 @@ public class TimerServiceTest {
         stateMachine.scheduleEvent(TestEvent.START, 1, TimeUnit.SECONDS);
 
         // Execute the scheduled task immediately
-        testTimerService.trigger();
+        testTimerService.trigger(0);
 
         // Verify the state changed to RUNNING
         assertEquals(TestState.RUNNING, stateMachine.getCurrentState());
@@ -61,7 +61,7 @@ public class TimerServiceTest {
         stateMachine.schedulePeriodicEvent(TestEvent.TIMEOUT, 1, 1, TimeUnit.SECONDS);
 
         // Execute the scheduled task immediately
-        testTimerService.triggerPeriod();
+        testTimerService.triggerPeriod(0);
 
         // Verify the state changed to STOPPED
         assertEquals(TestState.STOPPED, stateMachine.getCurrentState());
@@ -72,7 +72,7 @@ public class TimerServiceTest {
         stateMachine.scheduleEvent(TestEvent.START, "test data", 1, TimeUnit.SECONDS);
 
         // Execute the scheduled task immediately
-        testTimerService.trigger();
+        testTimerService.trigger(0);
 
         // Verify the state changed to RUNNING
         assertEquals(TestState.RUNNING, stateMachine.getCurrentState());

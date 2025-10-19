@@ -584,4 +584,298 @@ class NexumTest {
         assertTrue(handlerInvoked[0]);
         assertEquals(TestState.IDLE, nexum.getCurrentState()); // State should remain unchanged
     }
+
+    @Test
+    @DisplayName("Should add multiple transitions from array of source states to single target state")
+    void testArrayFromStatesToSingleToState() throws NexumException {
+        TestState[] fromStates = { TestState.IDLE, TestState.PAUSED, TestState.STOPPED };
+        
+        nexum
+                .addTransition(fromStates, TestState.RUNNING, TestEvent.START)
+                .start();
+
+        // Test transition from IDLE
+        nexum.fireEvent(TestEvent.START);
+        assertEquals(TestState.RUNNING, nexum.getCurrentState());
+
+        // Test transition from PAUSED
+        nexum.reset(TestState.PAUSED);
+        nexum.fireEvent(TestEvent.START);
+        assertEquals(TestState.RUNNING, nexum.getCurrentState());
+
+        // Test transition from STOPPED
+        nexum.reset(TestState.STOPPED);
+        nexum.fireEvent(TestEvent.START);
+        assertEquals(TestState.RUNNING, nexum.getCurrentState());
+    }
+
+    @Test
+    @DisplayName("Should add multiple transitions from array with guard")
+    void testArrayFromStatesWithGuard() throws NexumException {
+        TestState[] fromStates = { TestState.IDLE, TestState.PAUSED };
+        
+        nexum
+                .addTransition(fromStates, TestState.RUNNING, TestEvent.START,
+                        (ctx, event, data) -> {
+                            Integer value = (Integer) data;
+                            return value != null && value > 0;
+                        })
+                .start();
+
+        // Should succeed with valid data from IDLE
+        nexum.fireEvent(TestEvent.START, 10);
+        assertEquals(TestState.RUNNING, nexum.getCurrentState());
+
+        // Should succeed with valid data from PAUSED
+        nexum.reset(TestState.PAUSED);
+        nexum.fireEvent(TestEvent.START, 5);
+        assertEquals(TestState.RUNNING, nexum.getCurrentState());
+
+        // Should fail with invalid data
+        nexum.reset(TestState.IDLE);
+        assertThrows(NexumException.class, () -> {
+            nexum.fireEvent(TestEvent.START, -1);
+        });
+    }
+
+    @Test
+    @DisplayName("Should add multiple transitions from array with guard and action")
+    void testArrayFromStatesWithGuardAndAction() throws NexumException {
+        TestState[] fromStates = { TestState.IDLE, TestState.PAUSED };
+        final int[] actionCount = { 0 };
+        
+        nexum
+                .addTransition(fromStates, TestState.RUNNING, TestEvent.START,
+                        (ctx, event, data) -> true,
+                        (ctx, event, data) -> {
+                            actionCount[0]++;
+                            ctx.put("transitioned", true);
+                        })
+                .start();
+
+        // Test from IDLE
+        nexum.fireEvent(TestEvent.START);
+        assertEquals(TestState.RUNNING, nexum.getCurrentState());
+        assertEquals(1, actionCount[0]);
+        assertTrue(nexum.getContext().contains("transitioned"));
+
+        // Test from PAUSED
+        nexum.getContext().clear();
+        nexum.reset(TestState.PAUSED);
+        nexum.fireEvent(TestEvent.START);
+        assertEquals(TestState.RUNNING, nexum.getCurrentState());
+        assertEquals(2, actionCount[0]);
+        assertTrue(nexum.getContext().contains("transitioned"));
+    }
+
+    @Test
+    @DisplayName("Should support method chaining with array transitions")
+    void testArrayTransitionsMethodChaining() {
+        TestState[] fromStates = { TestState.IDLE, TestState.PAUSED };
+        
+        Nexum<TestState, TestEvent> result = nexum
+                .addTransition(fromStates, TestState.RUNNING, TestEvent.START)
+                .addTransition(fromStates, TestState.STOPPED, TestEvent.STOP,
+                        (ctx, event, data) -> true)
+                .addTransition(fromStates, TestState.RUNNING, TestEvent.RESUME,
+                        (ctx, event, data) -> true,
+                        (ctx, event, data) -> ctx.put("resumed", true));
+
+        assertSame(nexum, result);
+    }
+
+    @Test
+    @DisplayName("Should add multiple transitions from single source state with multiple events")
+    void testSingleFromStateWithMultipleEvents() throws NexumException {
+        TestEvent[] events = { TestEvent.START, TestEvent.RESUME };
+        
+        nexum
+                .addTransition(TestState.IDLE, TestState.RUNNING, events)
+                .start();
+
+        // Test transition with START event
+        nexum.fireEvent(TestEvent.START);
+        assertEquals(TestState.RUNNING, nexum.getCurrentState());
+
+        // Test transition with RESUME event
+        nexum.reset(TestState.IDLE);
+        nexum.fireEvent(TestEvent.RESUME);
+        assertEquals(TestState.RUNNING, nexum.getCurrentState());
+    }
+
+    @Test
+    @DisplayName("Should add multiple transitions from single source state with multiple events and guard")
+    void testSingleFromStateWithMultipleEventsAndGuard() throws NexumException {
+        TestEvent[] events = { TestEvent.START, TestEvent.RESUME };
+        
+        nexum
+                .addTransition(TestState.IDLE, TestState.RUNNING, events,
+                        (ctx, event, data) -> {
+                            Integer value = (Integer) data;
+                            return value != null && value > 0;
+                        })
+                .start();
+
+        // Should succeed with valid data and START event
+        nexum.fireEvent(TestEvent.START, 10);
+        assertEquals(TestState.RUNNING, nexum.getCurrentState());
+
+        // Should succeed with valid data and RESUME event
+        nexum.reset(TestState.IDLE);
+        nexum.fireEvent(TestEvent.RESUME, 5);
+        assertEquals(TestState.RUNNING, nexum.getCurrentState());
+
+        // Should fail with invalid data
+        nexum.reset(TestState.IDLE);
+        assertThrows(NexumException.class, () -> {
+            nexum.fireEvent(TestEvent.START, -1);
+        });
+    }
+
+    @Test
+    @DisplayName("Should add multiple transitions from single source state with multiple events, guard and action")
+    void testSingleFromStateWithMultipleEventsGuardAndAction() throws NexumException {
+        TestEvent[] events = { TestEvent.START, TestEvent.RESUME };
+        final int[] actionCount = { 0 };
+        
+        nexum
+                .addTransition(TestState.IDLE, TestState.RUNNING, events,
+                        (ctx, event, data) -> true,
+                        (ctx, event, data) -> {
+                            actionCount[0]++;
+                            ctx.put("event", event.toString());
+                        })
+                .start();
+
+        // Test with START event
+        nexum.fireEvent(TestEvent.START);
+        assertEquals(TestState.RUNNING, nexum.getCurrentState());
+        assertEquals(1, actionCount[0]);
+        assertEquals("START", nexum.getContext().get("event"));
+
+        // Test with RESUME event
+        nexum.reset(TestState.IDLE);
+        nexum.fireEvent(TestEvent.RESUME);
+        assertEquals(TestState.RUNNING, nexum.getCurrentState());
+        assertEquals(2, actionCount[0]);
+        assertEquals("RESUME", nexum.getContext().get("event"));
+    }
+
+    @Test
+    @DisplayName("Should add multiple transitions from multiple source states with multiple events")
+    void testMultipleFromStatesWithMultipleEvents() throws NexumException {
+        TestState[] fromStates = { TestState.IDLE, TestState.PAUSED, TestState.STOPPED };
+        TestEvent[] events = { TestEvent.START, TestEvent.RESUME };
+        
+        nexum
+                .addTransition(fromStates, TestState.RUNNING, events)
+                .start();
+
+        // Test all combinations
+        // IDLE + START
+        nexum.fireEvent(TestEvent.START);
+        assertEquals(TestState.RUNNING, nexum.getCurrentState());
+
+        // IDLE + RESUME
+        nexum.reset(TestState.IDLE);
+        nexum.fireEvent(TestEvent.RESUME);
+        assertEquals(TestState.RUNNING, nexum.getCurrentState());
+
+        // PAUSED + START
+        nexum.reset(TestState.PAUSED);
+        nexum.fireEvent(TestEvent.START);
+        assertEquals(TestState.RUNNING, nexum.getCurrentState());
+
+        // PAUSED + RESUME
+        nexum.reset(TestState.PAUSED);
+        nexum.fireEvent(TestEvent.RESUME);
+        assertEquals(TestState.RUNNING, nexum.getCurrentState());
+
+        // STOPPED + START
+        nexum.reset(TestState.STOPPED);
+        nexum.fireEvent(TestEvent.START);
+        assertEquals(TestState.RUNNING, nexum.getCurrentState());
+
+        // STOPPED + RESUME
+        nexum.reset(TestState.STOPPED);
+        nexum.fireEvent(TestEvent.RESUME);
+        assertEquals(TestState.RUNNING, nexum.getCurrentState());
+    }
+
+    @Test
+    @DisplayName("Should add multiple transitions from multiple source states with multiple events and guard")
+    void testMultipleFromStatesWithMultipleEventsAndGuard() throws NexumException {
+        TestState[] fromStates = { TestState.IDLE, TestState.PAUSED };
+        TestEvent[] events = { TestEvent.START, TestEvent.RESUME };
+        
+        nexum
+                .addTransition(fromStates, TestState.RUNNING, events,
+                        (ctx, event, data) -> {
+                            Integer value = (Integer) data;
+                            return value != null && value > 0;
+                        })
+                .start();
+
+        // Should succeed with valid data from IDLE with START
+        nexum.fireEvent(TestEvent.START, 10);
+        assertEquals(TestState.RUNNING, nexum.getCurrentState());
+
+        // Should succeed with valid data from PAUSED with RESUME
+        nexum.reset(TestState.PAUSED);
+        nexum.fireEvent(TestEvent.RESUME, 5);
+        assertEquals(TestState.RUNNING, nexum.getCurrentState());
+
+        // Should fail with invalid data
+        nexum.reset(TestState.IDLE);
+        assertThrows(NexumException.class, () -> {
+            nexum.fireEvent(TestEvent.START, -1);
+        });
+    }
+
+    @Test
+    @DisplayName("Should add multiple transitions from multiple source states with multiple events, guard and action")
+    void testMultipleFromStatesWithMultipleEventsGuardAndAction() throws NexumException {
+        TestState[] fromStates = { TestState.IDLE, TestState.PAUSED };
+        TestEvent[] events = { TestEvent.START, TestEvent.RESUME };
+        final int[] actionCount = { 0 };
+        
+        nexum
+                .addTransition(fromStates, TestState.RUNNING, events,
+                        (ctx, event, data) -> true,
+                        (ctx, event, data) -> {
+                            actionCount[0]++;
+                            ctx.put("lastTransition", data.toString() + "-" + event.toString());
+                        })
+                .start();
+
+        // Test from IDLE with START
+        nexum.fireEvent(TestEvent.START, "test1");
+        assertEquals(TestState.RUNNING, nexum.getCurrentState());
+        assertEquals(1, actionCount[0]);
+        assertEquals("test1-START", nexum.getContext().get("lastTransition"));
+
+        // Test from PAUSED with RESUME
+        nexum.reset(TestState.PAUSED);
+        nexum.fireEvent(TestEvent.RESUME, "test2");
+        assertEquals(TestState.RUNNING, nexum.getCurrentState());
+        assertEquals(2, actionCount[0]);
+        assertEquals("test2-RESUME", nexum.getContext().get("lastTransition"));
+    }
+
+    @Test
+    @DisplayName("Should support method chaining with multiple events")
+    void testMultipleEventsMethodChaining() {
+        TestState[] fromStates = { TestState.IDLE, TestState.PAUSED };
+        TestEvent[] events = { TestEvent.START, TestEvent.RESUME };
+        
+        Nexum<TestState, TestEvent> result = nexum
+                .addTransition(TestState.IDLE, TestState.RUNNING, events)
+                .addTransition(fromStates, TestState.STOPPED, events,
+                        (ctx, event, data) -> true)
+                .addTransition(fromStates, TestState.RUNNING, events,
+                        (ctx, event, data) -> true,
+                        (ctx, event, data) -> ctx.put("chained", true));
+
+        assertSame(nexum, result);
+    }
 }
