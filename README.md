@@ -153,6 +153,69 @@ sm.start();
 sm.fireEvent("connect");
 ```
 
+## Fluent API for Transitions
+
+Starting from version 1.3.2, Nexum provides a fluent API for creating transitions with a more readable and intuitive syntax. This eliminates the need to explicitly create arrays when defining transitions from multiple states.
+
+### Basic Usage
+
+```java
+// Old style - requires explicit array creation
+sm.addTransition(new DeviceState[] {UNPLUGGED, PLUGGED}, UNPLUGGED, UNPLUG);
+
+// New fluent style - cleaner and more readable
+sm.from(UNPLUGGED, PLUGGED).to(UNPLUGGED).on(UNPLUG);
+```
+
+### Examples
+
+```java
+Nexum<DeviceState, DeviceEvent> sm = new Nexum<>(DeviceState.DISCONNECTED);
+
+// Single source state
+sm.from(DISCONNECTED).to(CONNECTING).on(CONNECT);
+
+// Multiple source states
+sm.from(CONNECTED, BUSY).to(DISCONNECTED).on(DISCONNECT);
+
+// With guard condition
+sm.from(CONNECTING).to(CONNECTED).on(CONNECT,
+    (context, event, data) -> context.get("valid") != null);
+
+// With guard and action
+sm.from(CONNECTED).to(BUSY).on(START_OPERATION,
+    (context, event, data) -> true,
+    (context, event, data) -> context.put("startTime", System.currentTimeMillis()));
+
+// Multiple events using onAny
+sm.from(BUSY, ERROR).to(DISCONNECTED).onAny(DISCONNECT, ERROR_OCCURRED);
+
+// Method chaining
+sm.from(DISCONNECTED).to(CONNECTING).on(CONNECT)
+  .from(CONNECTING).to(CONNECTED).on(CONNECT)
+  .from(CONNECTED).to(BUSY).on(START_OPERATION)
+  .from(BUSY).to(CONNECTED).on(OPERATION_COMPLETE);
+```
+
+### Available Methods
+
+- **`from(S... states)`** - Start building a transition from one or more source states
+- **`to(S state)`** - Specify the target state
+- **`on(E event)`** - Specify the event that triggers the transition
+- **`on(E event, guard)`** - Add a guard condition
+- **`on(E event, guard, action)`** - Add guard and action
+- **`onAny(E... events)`** - Trigger on any of the specified events
+- **`onAny(guard, E... events)`** - Multiple events with guard
+- **`onAny(guard, action, E... events)`** - Multiple events with guard and action
+
+### Benefits
+
+- **More readable**: The fluent syntax reads like natural language
+- **Less verbose**: No need to create arrays explicitly
+- **Type-safe**: Full compile-time type checking
+- **Flexible**: Supports all transition features (guards, actions, multiple states/events)
+- **Chainable**: Build complex state machines with method chaining
+
 ## Features
 
 - **Generic**: Works with any type of state and event (Enum, String, custom classes)

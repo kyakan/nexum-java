@@ -275,6 +275,124 @@ public class Nexum<S, E> {
     }
 
     /**
+     * Start building a transition from one or more source states
+     * This provides a fluent API for creating transitions
+     *
+     * @param fromStates One or more source states
+     * @return A TransitionBuilder for method chaining
+     */
+    @SafeVarargs
+    public final TransitionBuilder from(S... fromStates) {
+        return new TransitionBuilder(fromStates);
+    }
+
+    /**
+     * Fluent builder for creating transitions with a more readable syntax
+     */
+    public class TransitionBuilder {
+        private final S[] fromStates;
+
+        @SafeVarargs
+        private TransitionBuilder(S... fromStates) {
+            this.fromStates = fromStates;
+        }
+
+        /**
+         * Specify the target state for the transition
+         *
+         * @param toState The target state
+         * @return A ToStateBuilder for method chaining
+         */
+        public ToStateBuilder to(S toState) {
+            return new ToStateBuilder(fromStates, toState);
+        }
+    }
+
+    /**
+     * Builder for specifying the event that triggers the transition
+     */
+    public class ToStateBuilder {
+        private final S[] fromStates;
+        private final S toState;
+
+        private ToStateBuilder(S[] fromStates, S toState) {
+            this.fromStates = fromStates;
+            this.toState = toState;
+        }
+
+        /**
+         * Specify the event that triggers the transition
+         *
+         * @param event The event
+         * @return The Nexum instance for method chaining
+         */
+        public Nexum<S, E> on(E event) {
+            return addTransition(fromStates, toState, event);
+        }
+
+        /**
+         * Specify the event and guard condition
+         *
+         * @param event The event
+         * @param guard The guard condition
+         * @return The Nexum instance for method chaining
+         */
+        public Nexum<S, E> on(E event, Transition.TransitionGuard<S, E> guard) {
+            return addTransition(fromStates, toState, event, guard);
+        }
+
+        /**
+         * Specify the event, guard condition, and action
+         *
+         * @param event  The event
+         * @param guard  The guard condition
+         * @param action The action to execute
+         * @return The Nexum instance for method chaining
+         */
+        public Nexum<S, E> on(E event, Transition.TransitionGuard<S, E> guard,
+                Transition.TransitionAction<S, E> action) {
+            return addTransition(fromStates, toState, event, guard, action);
+        }
+
+        /**
+         * Specify multiple events that trigger the transition
+         *
+         * @param events The events
+         * @return The Nexum instance for method chaining
+         */
+        @SafeVarargs
+        public final Nexum<S, E> onAny(E... events) {
+            return addTransition(fromStates, toState, events);
+        }
+
+        /**
+         * Specify multiple events with a guard condition
+         *
+         * @param guard  The guard condition
+         * @param events The events
+         * @return The Nexum instance for method chaining
+         */
+        @SafeVarargs
+        public final Nexum<S, E> onAny(Transition.TransitionGuard<S, E> guard, E... events) {
+            return addTransition(fromStates, toState, events, guard);
+        }
+
+        /**
+         * Specify multiple events with guard and action
+         *
+         * @param guard  The guard condition
+         * @param action The action to execute
+         * @param events The events
+         * @return The Nexum instance for method chaining
+         */
+        @SafeVarargs
+        public final Nexum<S, E> onAny(Transition.TransitionGuard<S, E> guard,
+                Transition.TransitionAction<S, E> action, E... events) {
+            return addTransition(fromStates, toState, events, guard, action);
+        }
+    }
+
+    /**
      * Add a scheduled transition to the state machine
      *
      * @param fromState The source state
