@@ -437,7 +437,7 @@ public class Nexum<S, E> {
             lock.lock();
             try {
                 for(@SuppressWarnings("unused") var __ : fromStates) {
-                    transitions.removeLast();
+                    transitions.remove(transitions.size() - 1);
                 }
                 Nexum.this.addTransition(fromStates, toState, event, guard, action);
             } finally {
@@ -458,7 +458,7 @@ public class Nexum<S, E> {
             lock.lock();
             try {
                 for(@SuppressWarnings("unused") var __ : fromStates) {
-                    transitions.removeLast();
+                    transitions.remove(transitions.size() - 1);
                 }
                 Nexum.this.addTransition(fromStates, toState, event, guard, action);
             } finally {
@@ -702,8 +702,8 @@ public class Nexum<S, E> {
             lock.lock();
             try {
                 for (@SuppressWarnings("unused") var unused : fromStates) {
-                    transitions.removeLast();
-                    scheduledTransitions.removeLast();
+                    transitions.remove(transitions.size() - 1);
+                    scheduledTransitions.remove(scheduledTransitions.size() - 1);
                 }              
                 for (S fromState : fromStates) {
                     addScheduledTransition(fromState, toState, event, delay, unit, guard, action);
@@ -726,8 +726,8 @@ public class Nexum<S, E> {
             lock.lock();
             try {
                 for (@SuppressWarnings("unused") var unused : fromStates) {
-                    transitions.removeLast();
-                    scheduledTransitions.removeLast();
+                    transitions.remove(transitions.size() - 1);
+                    scheduledTransitions.remove(scheduledTransitions.size() - 1);
                 }
                 for (S fromState : fromStates) {
                     addScheduledTransition(fromState, toState, event, delay, unit, guard, action);
