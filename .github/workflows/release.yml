@@ -1,9 +1,8 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - 'v*' # Trigger su tag che iniziano con v (es. v1.0.0)
+  release:
+    types: [published]
 
 env:
   JAVA_VERSION: '11'
@@ -13,10 +12,48 @@ jobs:
   build:
     name: Build and Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version from pom.xml
+        id: get_version
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          TAG_NAME="v${VERSION}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "Extracted version from pom.xml: $VERSION"
+          echo "Tag to create: $TAG_NAME"
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create and push tag
+        run: |
+          TAG_NAME="${{ steps.get_version.outputs.tag_name }}"
+          VERSION="${{ steps.get_version.outputs.version }}"
+          
+          # Check if tag already exists
+          if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
+            echo "Tag $TAG_NAME already exists, skipping creation"
+          else
+            # Create annotated tag
+            git tag -a "$TAG_NAME" -m "Release version $VERSION"
+            
+            # Push tag
+            git push origin "$TAG_NAME"
+            
+            echo "Tag $TAG_NAME created and pushed successfully"
+          fi
 
       - name: Set up JDK
         uses: actions/setup-java@v3
@@ -27,13 +64,6 @@ jobs:
 
       - name: Build with Maven
         run: mvn -B clean package
-
-      - name: Get tag version
-        id: get_version
-        run: |
-          # Estrae la versione dal tag (rimuove il prefisso 'v')
-          VERSION=${GITHUB_REF#refs/tags/v}
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Generate changelog
         id: changelog
@@ -63,23 +93,28 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create GitHub Release
-        id: create_release
+      - name: Generate Javadoc
+        run: mvn javadoc:jar
+
+      - name: Generate Sources
+        run: mvn source:jar
+
+      - name: Update Release with changelog and assets
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref_name }}
+          tag_name: ${{ steps.get_version.outputs.tag_name }}
           name: Release ${{ steps.get_version.outputs.version }}
           body: |
             ## Nexum ${{ steps.get_version.outputs.version }}
 
             ${{ steps.changelog.outputs.changelog }}
 
-            ### Artefatti
-            - JAR principale: `nexum-${{ steps.get_version.outputs.version }}.jar`
+            ### Artifacts
+            - Main JAR: `nexum-${{ steps.get_version.outputs.version }}.jar`
             - Javadoc: `nexum-${{ steps.get_version.outputs.version }}-javadoc.jar`
             - Sources: `nexum-${{ steps.get_version.outputs.version }}-sources.jar`
 
-            ### Istruzioni
+            ### Usage
             ```xml
             <dependency>
                 <groupId>it.kyakan</groupId>
@@ -88,56 +123,17 @@ jobs:
             </dependency>
             ```
 
-            ### Note
-            - Compatibile con Java 11+
-            - Nessuna dipendenza esterna
+            ### Notes
+            - Compatible with Java 11+
+            - No external dependencies
           draft: false
-          prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}
-          generate_release_notes: false
-
-      - name: List target directory
-        run: ls -la target/
-
-      - name: Upload Release Assets
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: target/nexum-${{ steps.get_version.outputs.version }}.jar
-          asset_name: nexum-${{ steps.get_version.outputs.version }}.jar
-          asset_content_type: application/java-archive
-
-      - name: Generate and Upload Javadoc
-        run: |
-          mvn javadoc:jar
-          mv target/nexum-${{ steps.get_version.outputs.version }}-javadoc.jar target/nexum-${{ steps.get_version.outputs.version }}-javadoc.jar.tmp
-          zip -r target/nexum-${{ steps.get_version.outputs.version }}-javadoc.jar target/apidocs
-
-      - name: Upload Javadoc Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: target/nexum-${{ steps.get_version.outputs.version }}-javadoc.jar
-          asset_name: nexum-${{ steps.get_version.outputs.version }}-javadoc.jar
-          asset_content_type: application/zip
-
-      - name: Generate and Upload Sources
-        run: mvn source:jar
-
-      - name: Upload Sources Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: target/nexum-${{ steps.get_version.outputs.version }}-sources.jar
-          asset_name: nexum-${{ steps.get_version.outputs.version }}-sources.jar
-          asset_content_type: application/java-archive
+          prerelease: ${{ contains(steps.get_version.outputs.version, '-rc') || contains(steps.get_version.outputs.version, '-beta') || contains(steps.get_version.outputs.version, '-alpha') }}
+          files: |
+            target/nexum-${{ steps.get_version.outputs.version }}.jar
+            target/nexum-${{ steps.get_version.outputs.version }}-javadoc.jar
+            target/nexum-${{ steps.get_version.outputs.version }}-sources.jar
 
       - name: Publish to GitHub Packages
-        run: mvn deploy -DskipTests -Dgpg.skip=true -DaltDeploymentRepository=github::default::https://maven.pkg.github.com/kyakan/nexum-java
+        run: mvn deploy -DskipTests -Dgpg.skip=true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -61,7 +61,7 @@ public class TimerServiceTest {
         stateMachine.schedulePeriodicEvent(TestEvent.TIMEOUT, 1, 1, TimeUnit.SECONDS);
 
         // Execute the scheduled task immediately
-        testTimerService.trigger();
+        testTimerService.triggerPeriod();
 
         // Verify the state changed to STOPPED
         assertEquals(TestState.STOPPED, stateMachine.getCurrentState());
