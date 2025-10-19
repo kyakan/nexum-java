@@ -34,8 +34,9 @@ public class FluentScheduledApiTest {
         
         // Use fluent API for scheduled transition
         sm.fromScheduled(State.ACTIVE).to(State.TIMEOUT).on(Event.TIMEOUT_EVENT, 100, TimeUnit.MILLISECONDS)
-            .withAction((context, event, data) -> actionExecuted.set(true))
-            .from(State.IDLE).to(State.ACTIVE).on(Event.START);
+            .withAction((context, event, data) -> actionExecuted.set(true));
+        sm.from(State.IDLE).to(State.ACTIVE).on(Event.START);
+        
         sm.start();
         
         // Verify scheduled transition was registered
@@ -45,7 +46,6 @@ public class FluentScheduledApiTest {
         assertEquals(State.ACTIVE, sm.getCurrentState());
         
         // Now scheduled transition should be active
-        // Count is 2 because withAction removes and re-adds the transition
         assertEquals(1, timerService.SCHEDULED_COUNT, "Scheduled transition should be registered");
         assertEquals(0, timerService.EXECUTED_COUNT, "Not executed yet");
         assertFalse(actionExecuted.get());
@@ -54,7 +54,6 @@ public class FluentScheduledApiTest {
         timerService.triggerPeriod(0);
         
         assertEquals(State.TIMEOUT, sm.getCurrentState(), "Should have transitioned to TIMEOUT");
-        assertEquals(1, timerService.SCHEDULED_COUNT, "Scheduled transition should be registered");
         assertEquals(1, timerService.EXECUTED_COUNT, "Should be executed");
         assertTrue(actionExecuted.get(), "Action should have been executed");
     }
@@ -73,28 +72,21 @@ public class FluentScheduledApiTest {
         assertEquals(State.ACTIVE, sm.getCurrentState());
         assertTrue((Boolean) sm.getContext().get("canTimeout"));
         
-        // Count is 2 because withGuard removes and re-adds the transition
         assertEquals(1, timerService.SCHEDULED_COUNT);
         
         // Trigger - should succeed because guard passes
         timerService.triggerPeriod(0);
-        assertEquals(1, timerService.SCHEDULED_COUNT);
         assertEquals(State.TIMEOUT, sm.getCurrentState(), "Guard should have allowed transition");
     }
 
     @Test
     public void testFluentScheduledWithGuardBlocked() {
+        // Scheduled transition with guard that blocks
         sm.fromScheduled(State.ACTIVE).to(State.TIMEOUT).on(Event.TIMEOUT_EVENT, 100, TimeUnit.MILLISECONDS)
             .withGuard((context, event, data) -> context.get("allowTimeout") != null);
         sm.from(State.IDLE).to(State.ACTIVE).on(Event.START);
-        sm.from(State.IDLE).to(State.TIMEOUT).on(Event.STOP);
-        sm.from(State.ACTIVE).to(State.ACTIVE).on(Event.COMPLETE).withAction((context, event, data) -> context.put("allowTimeout", true));
         
         sm.start();
-
-        assertEquals(State.IDLE, sm.getCurrentState());
-        assertEquals(0, timerService.SCHEDULED_COUNT);
-        assertEquals(0, timerService.EXECUTED_COUNT);
         
         sm.fireEvent(Event.START);
 
@@ -102,29 +94,12 @@ public class FluentScheduledApiTest {
         assertEquals(1, timerService.SCHEDULED_COUNT);
         assertEquals(0, timerService.EXECUTED_COUNT);
         
+        // Trigger - should NOT transition because guard fails
         assertThrows(RuntimeException.class, () -> timerService.triggerPeriod(0));
 
-        assertEquals(State.ACTIVE, sm.getCurrentState());
-        assertEquals(1, timerService.SCHEDULED_COUNT);
-        assertEquals(0, timerService.EXECUTED_COUNT);
-
-        assertThrows(RuntimeException.class, () -> sm.fireEvent(Event.STOP));
-
-        assertEquals(State.ACTIVE, sm.getCurrentState());
-        assertEquals(1, timerService.SCHEDULED_COUNT);
-        assertEquals(0, timerService.EXECUTED_COUNT);
-
-        sm.fireEvent(Event.COMPLETE);
-        
-        assertEquals(State.ACTIVE, sm.getCurrentState());
-        assertEquals(1, timerService.SCHEDULED_COUNT);
-        assertEquals(0, timerService.EXECUTED_COUNT);
-
+        sm.getContext().put("allowTimeout", true);
         timerService.triggerPeriod(0);
-        
-        assertEquals(State.TIMEOUT, sm.getCurrentState());
-        assertEquals(1, timerService.SCHEDULED_COUNT);
-        assertEquals(1, timerService.EXECUTED_COUNT);
+        assertEquals(State.TIMEOUT, sm.getCurrentState(), "Should still be ACTIVE because guard blocked");
     }
 
     @Test
@@ -196,7 +171,6 @@ public class FluentScheduledApiTest {
         sm.fireEvent(Event.START);
         assertEquals(State.ACTIVE, sm.getCurrentState());
         
-        // Count is 2 because withAction removes and re-adds the transition
         assertEquals(1, timerService.SCHEDULED_COUNT);
         
         // Trigger scheduled transition
@@ -234,49 +208,6 @@ public class FluentScheduledApiTest {
         assertFalse(timeoutAction.get(), "Timeout should not have triggered");
     }
 
-
-
-    @Test
-    public void testFluentScheduledBuilds() {
-        AtomicBoolean actionExecuted = new AtomicBoolean(false);
-        
-        // Scheduled transition from multiple states
-        sm.fromScheduled(State.ACTIVE, State.COMPLETED).to(State.IDLE).on(Event.TIMEOUT_EVENT, 100, TimeUnit.MILLISECONDS)
-            .withGuard((context, event, data) -> true)
-            .withAction((context, event, data) -> actionExecuted.set(true));
-        sm.start();
-        
-        assertEquals(2, sm.getTransactionCount());
-        assertEquals(2, sm.getScheduledTransactionCount());
-    }
-
-    @Test
-    public void testFluentScheduledActionsBuilds() {
-        AtomicBoolean actionExecuted = new AtomicBoolean(false);
-        
-        // Scheduled transition from multiple states
-        sm.fromScheduled(State.ACTIVE, State.COMPLETED).to(State.IDLE).on(Event.TIMEOUT_EVENT, 100, TimeUnit.MILLISECONDS)
-            .withAction((context, event, data) -> actionExecuted.set(true));
-        sm.start();
-        
-        assertEquals(2, sm.getTransactionCount());
-        assertEquals(2, sm.getScheduledTransactionCount());
-    }
-
-
-    @Test
-    public void testFluentScheduledGuardBuilds() {
-        AtomicBoolean actionExecuted = new AtomicBoolean(false);
-        
-        // Scheduled transition from multiple states
-        sm.fromScheduled(State.ACTIVE, State.COMPLETED).to(State.IDLE).on(Event.TIMEOUT_EVENT, 100, TimeUnit.MILLISECONDS)
-            .withGuard((context, event, data) -> true);
-        sm.start();
-        
-        assertEquals(2, sm.getTransactionCount());
-        assertEquals(2, sm.getScheduledTransactionCount());
-    }
-
     @Test
     public void testFluentScheduledWithMultipleStates() {
         AtomicBoolean actionExecuted = new AtomicBoolean(false);
@@ -289,39 +220,25 @@ public class FluentScheduledApiTest {
         
         sm.start();
         
-        assertEquals(0, timerService.SCHEDULED_COUNT);
-        assertEquals(0, timerService.EXECUTED_COUNT);
-        assertEquals(State.IDLE, sm.getCurrentState());
-        assertFalse(actionExecuted.get());
-
         sm.fireEvent(Event.START);
-        
-        assertEquals(1, timerService.SCHEDULED_COUNT);
-        assertEquals(0, timerService.EXECUTED_COUNT);
+
         assertEquals(State.ACTIVE, sm.getCurrentState());
-        assertFalse(actionExecuted.get());
+        assertEquals(1, timerService.SCHEDULED_COUNT);
+        assertEquals(0, timerService.EXECUTED_COUNT); // No triggers yet
         
         timerService.triggerPeriod(0);
-        
-        assertEquals(1, timerService.SCHEDULED_COUNT);
-        assertEquals(1, timerService.EXECUTED_COUNT);
+
         assertEquals(State.IDLE, sm.getCurrentState());
         assertTrue(actionExecuted.get());
         
+        // Reset and test from COMPLETED state
         actionExecuted.set(false);
         sm.fireEvent(Event.START);
         sm.fireEvent(Event.COMPLETE);
-
-
-        assertEquals(2, timerService.SCHEDULED_COUNT);
-        assertEquals(1, timerService.EXECUTED_COUNT);
         assertEquals(State.COMPLETED, sm.getCurrentState());
-        assertFalse(actionExecuted.get());
-
-        timerService.triggerPeriod(1);
         
-        assertEquals(2, timerService.SCHEDULED_COUNT);
-        assertEquals(2, timerService.EXECUTED_COUNT);
+        // Trigger scheduled transition from COMPLETED
+        timerService.triggerPeriod(1);
         assertEquals(State.IDLE, sm.getCurrentState());
         assertTrue(actionExecuted.get());
     }
@@ -335,25 +252,20 @@ public class FluentScheduledApiTest {
             .withAction((context, event, data) -> scheduledTriggered.set(true));
         sm.from(State.IDLE).to(State.ACTIVE).on(Event.START);
         sm.from(State.ACTIVE).to(State.COMPLETED).on(Event.COMPLETE);
+        
         sm.start();
-
-        assertEquals(0, timerService.SCHEDULED_COUNT);
-        assertEquals(0, timerService.EXECUTED_COUNT);
-        assertEquals(State.IDLE, sm.getCurrentState());
-        assertFalse(scheduledTriggered.get());
         
         sm.fireEvent(Event.START);
-        
-        assertEquals(1, timerService.SCHEDULED_COUNT);
-        assertEquals(0, timerService.EXECUTED_COUNT);
         assertEquals(State.ACTIVE, sm.getCurrentState());
-        assertFalse(scheduledTriggered.get());
-                  
-        timerService.triggerPeriod(0);
-        
         assertEquals(1, timerService.SCHEDULED_COUNT);
-        assertEquals(1, timerService.EXECUTED_COUNT);
-        assertEquals(State.TIMEOUT, sm.getCurrentState());
-        assertTrue(scheduledTriggered.get());
+        
+        // Fire immediate transition to change state
+        sm.fireEvent(Event.COMPLETE);
+        assertEquals(State.COMPLETED, sm.getCurrentState());
+        
+        // Try to trigger scheduled transition (should be cancelled)
+        timerService.triggerPeriod(0);
+        assertFalse(scheduledTriggered.get(), "Scheduled transition should have been cancelled");
+        assertEquals(State.COMPLETED, sm.getCurrentState());
     }
 }

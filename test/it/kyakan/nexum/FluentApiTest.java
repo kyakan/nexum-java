@@ -280,4 +280,32 @@ public class FluentApiTest {
         sm.fireEvent(Event.UNPLUG);
         assertTrue((Boolean) sm.getContext().get("action2"));
     }
+
+    @Test
+    public void testOnAnyWithGuardAndActionChaining() {
+        sm.reset(State.PLUGGED);
+
+        AtomicBoolean actionExecuted = new AtomicBoolean(false);
+        AtomicBoolean guardChecked = new AtomicBoolean(false);
+
+        sm.from(State.PLUGGED, State.CHARGING).to(State.UNPLUGGED)
+            .onAny(Event.UNPLUG, Event.CHARGE_COMPLETE)
+            .withGuard((context, event, data) -> {
+                guardChecked.set(true);
+                return true;
+            })
+            .withAction((context, event, data) -> {
+                actionExecuted.set(true);
+                context.put("eventFired", event);
+            });
+
+        sm.start();
+
+        sm.fireEvent(Event.UNPLUG);
+        
+        assertEquals(State.UNPLUGGED, sm.getCurrentState());
+        assertTrue(guardChecked.get(), "Guard should have been checked");
+        assertTrue(actionExecuted.get(), "Action should have been executed");
+        assertEquals(Event.UNPLUG, sm.getContext().get("eventFired"));
+    }
 }

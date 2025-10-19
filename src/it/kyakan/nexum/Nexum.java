@@ -377,8 +377,9 @@ public class Nexum<S, E> {
          * @return The Nexum instance for method chaining
          */
         @SafeVarargs
-        public final Nexum<S, E> onAny(E... events) {
-            return addTransition(fromStates, toState, events);
+        public final NexumWithModifier onAny(E... events) {
+            addTransition(fromStates, toState, events);
+            return new NexumWithModifier(fromStates, toState, events);
         }
 
         /**
@@ -386,11 +387,16 @@ public class Nexum<S, E> {
          *
          * @param guard  The guard condition
          * @param events The events
-         * @return The Nexum instance for method chaining
+         * @return The NexumWithModifier instance for method chaining
          */
         @SafeVarargs
-        public final Nexum<S, E> onAny(Transition.TransitionGuard<S, E> guard, E... events) {
-            return addTransition(fromStates, toState, events, guard);
+        public final NexumWithModifier onAny(Transition.TransitionGuard<S, E> guard, E... events) {
+            // Add the basic transitions immediately with guard
+            for (E event : events) {
+                addTransition(fromStates, toState, event, guard);
+            }
+            // Return a NexumWithModifier for chaining withGuard/withAction
+            return new NexumWithModifier(fromStates, toState, events[events.length - 1]);
         }
 
         /**
@@ -399,12 +405,17 @@ public class Nexum<S, E> {
          * @param guard  The guard condition
          * @param action The action to execute
          * @param events The events
-         * @return The Nexum instance for method chaining
+         * @return The NexumWithModifier instance for method chaining
          */
         @SafeVarargs
-        public final Nexum<S, E> onAny(Transition.TransitionGuard<S, E> guard,
+        public final NexumWithModifier onAny(Transition.TransitionGuard<S, E> guard,
                 Transition.TransitionAction<S, E> action, E... events) {
-            return addTransition(fromStates, toState, events, guard, action);
+            // Add the basic transitions immediately with guard and action
+            for (E event : events) {
+                addTransition(fromStates, toState, event, guard, action);
+            }
+            // Return a NexumWithModifier for chaining withGuard/withAction
+            return new NexumWithModifier(fromStates, toState, events[events.length - 1]);
         }
     }
 
@@ -415,14 +426,22 @@ public class Nexum<S, E> {
     public class NexumWithModifier {
         private final S[] fromStates;
         private final S toState;
-        private final E event;
+        private final E[] events;
         private Transition.TransitionGuard<S, E> guard;
         private Transition.TransitionAction<S, E> action;
 
+        @SuppressWarnings("unchecked")
         private NexumWithModifier(S[] fromStates, S toState, E event) {
             this.fromStates = fromStates;
             this.toState = toState;
-            this.event = event;
+            this.events = (E[]) new Object[]{event};
+        }
+
+        @SuppressWarnings("unchecked")
+        public NexumWithModifier(S[] fromStates, S toState, E[] events) {
+            this.fromStates = fromStates;
+            this.toState = toState;
+            this.events = events;
         }
 
         /**
@@ -436,10 +455,10 @@ public class Nexum<S, E> {
             // Remove the last added transitions without guard/action
             lock.lock();
             try {
-                for(@SuppressWarnings("unused") var __ : fromStates) {
-                    transitions.remove(transitions.size() - 1);
-                }
-                Nexum.this.addTransition(fromStates, toState, event, guard, action);
+                for(@SuppressWarnings("unused") var __1 : fromStates) 
+                    for(@SuppressWarnings("unused") var __2 : this.events) 
+                        transitions.remove(transitions.size() - 1);
+                Nexum.this.addTransition(fromStates, toState, events, guard, action);
             } finally {
                 lock.unlock();
             }
@@ -457,10 +476,10 @@ public class Nexum<S, E> {
             // Remove the last added transitions
             lock.lock();
             try {
-                for(@SuppressWarnings("unused") var __ : fromStates) {
-                    transitions.remove(transitions.size() - 1);
-                }
-                Nexum.this.addTransition(fromStates, toState, event, guard, action);
+                for(@SuppressWarnings("unused") var __1 : fromStates) 
+                    for(@SuppressWarnings("unused") var __2 : this.events) 
+                        transitions.remove(transitions.size() - 1);
+                Nexum.this.addTransition(fromStates, toState, events, guard, action);
             } finally {
                 lock.unlock();
             }
@@ -672,22 +691,23 @@ public class Nexum<S, E> {
     public class ScheduledEventBuilder {
         private final S[] fromStates;
         private final S toState;
-        private final E event;
+        private final E[] events;
         private final long delay;
         private final TimeUnit unit;
         private Transition.TransitionGuard<S, E> guard;
         private Transition.TransitionAction<S, E> action;
 
         private ScheduledEventBuilder(S[] fromStates, S toState, E event, long delay, TimeUnit unit) {
+            this(fromStates, toState, (E[])new Object[]{event}, delay, unit);
+        }
+
+        private ScheduledEventBuilder(S[] fromStates, S toState, E[] events, long delay, TimeUnit unit) {
             this.fromStates = fromStates;
             this.toState = toState;
-            this.event = event;
+            this.events = events;
             this.delay = delay;
             this.unit = unit;
-            // Add basic scheduled transition immediately
-            for (S fromState : fromStates) {
-                addScheduledTransition(fromState, toState, event, delay, unit);
-            }
+            addScheduledTransition(fromStates, toState, events, delay, unit);
         }
 
         /**
@@ -701,13 +721,13 @@ public class Nexum<S, E> {
             // Remove and re-add with guard
             lock.lock();
             try {
-                for (@SuppressWarnings("unused") var unused : fromStates) {
-                    transitions.remove(transitions.size() - 1);
-                    scheduledTransitions.remove(scheduledTransitions.size() - 1);
+                for(@SuppressWarnings("unused") var __1 : fromStates) {
+                    for(@SuppressWarnings("unused") var __2 : this.events) {
+                        transitions.remove(transitions.size() - 1);
+                        scheduledTransitions.remove(scheduledTransitions.size() - 1);
+                    }
                 }              
-                for (S fromState : fromStates) {
-                    addScheduledTransition(fromState, toState, event, delay, unit, guard, action);
-                }
+                addScheduledTransition(fromStates, toState, events, delay, unit, guard, action);
             } finally {
                 lock.unlock();
             }
@@ -725,13 +745,13 @@ public class Nexum<S, E> {
             // Remove and re-add with action
             lock.lock();
             try {
-                for (@SuppressWarnings("unused") var unused : fromStates) {
-                    transitions.remove(transitions.size() - 1);
-                    scheduledTransitions.remove(scheduledTransitions.size() - 1);
-                }
-                for (S fromState : fromStates) {
-                    addScheduledTransition(fromState, toState, event, delay, unit, guard, action);
-                }
+                for(@SuppressWarnings("unused") var __1 : fromStates) {
+                    for(@SuppressWarnings("unused") var __2 : this.events) {
+                        transitions.remove(transitions.size() - 1);
+                        scheduledTransitions.remove(scheduledTransitions.size() - 1);
+                    }
+                }       
+                addScheduledTransition(fromStates, toState, events, delay, unit, guard, action);
             } finally {
                 lock.unlock();
             }
