@@ -15,7 +15,7 @@ public class ScheduledTransition<S, E> extends Transition<S, E> {
     private final TimerService timerService;
     private final Nexum<S, E> nexum;
     private Runnable scheduledTask;
-    private volatile boolean isCancelled = false;
+    private volatile boolean isScheduled = false;
 
     /**
      * Create a new scheduled transition
@@ -67,6 +67,20 @@ public class ScheduledTransition<S, E> extends Transition<S, E> {
         this.unit = unit;
         this.timerService = timerService;
         this.nexum = nexum;
+        
+        if (this.timerService == null) {
+            throw new IllegalStateException("No timer service available");
+        }
+        scheduledTask = () -> {
+            if (isScheduled && nexum.getCurrentState().equals(getFromState())) {
+                try {
+                    this.nexum.fireEvent(getEvent());
+                } catch (Exception e) {
+                    throw new RuntimeException("Failed to trigger scheduled transition", e);
+                }
+            }
+        };
+        this.timerService.scheduleOnce(scheduledTask, delay, unit);
     }
 
     /**
@@ -91,26 +105,13 @@ public class ScheduledTransition<S, E> extends Transition<S, E> {
      * Schedule this transition to be triggered after the delay
      */
     public void schedule() {
-        if (timerService == null) {
-            throw new IllegalStateException("No timer service available");
-        }
-        scheduledTask = () -> {
-            if (!isCancelled) {
-                try {
-                    // Trigger the transition by firing the event
-                    nexum.fireEvent(getEvent());
-                } catch (Exception e) {
-                    throw new RuntimeException("Failed to trigger scheduled transition", e);
-                }
-            }
-        };
-        timerService.scheduleOnce(scheduledTask, delay, unit);
+        isScheduled = true;
     }
 
     /**
      * Cancel the scheduled transition
      */
     public void cancel() {
-        isCancelled = true;
+        isScheduled = false;
     }
 }
