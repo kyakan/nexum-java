@@ -80,3 +80,4 @@ secrets.properties
 secrets.json
 local.properties
 
+.m2

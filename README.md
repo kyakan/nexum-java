@@ -508,6 +508,62 @@ sm.start();
 - You can set or change the timer service at any time using `setTimerService()`.
 - Remember to call `cancel()` on your timer service when it's no longer needed to free resources.
 
+## Periodic Event Triggers
+
+Periodic event triggers allow you to fire events periodically while the state machine is in a specific state, without causing state transitions. This is useful for monitoring, polling, or recurring actions tied to a state.
+
+### Adding Periodic Event Triggers
+
+You can add periodic event triggers either by calling `addPeriodicEventTrigger` directly or by using the fluent API for more readable and flexible configuration.
+
+#### Direct Method
+
+```java
+// Create state machine with timer service
+TimerService timerService = new JavaTimerService();
+Nexum<DeviceState, DeviceEvent> sm = new Nexum<>(DeviceState.DISCONNECTED, timerService);
+
+// Add a periodic event trigger that fires POLL event every 1 second while in MONITORING state
+sm.addPeriodicEventTrigger(
+    DeviceState.MONITORING,
+    DeviceEvent.POLL,
+    1,
+    1,
+    TimeUnit.SECONDS
+);
+
+// Start the state machine
+sm.start();
+```
+
+#### Fluent API Method
+
+```java
+sm.inState(DeviceState.MONITORING)
+  .trigger(DeviceEvent.POLL)
+  .every(1, TimeUnit.SECONDS)
+  .withGuard((context, event, data) -> {
+      // Optional guard condition
+      return true;
+  })
+  .withMaxOccurrences(10); // Optional max number of times to fire event
+```
+
+### How Periodic Event Triggers Work
+
+1. When the state machine enters a state, all periodic event triggers for that state are scheduled.
+2. When the state machine leaves a state, all periodic event triggers for that state are canceled.
+3. Periodic event triggers do not cause state transitions; they only fire events.
+4. You can specify an optional guard condition to control when events are fired.
+5. You can specify an optional maximum number of times to fire the event; if null or 0, events fire indefinitely.
+
+### Notes
+
+- Periodic event triggers require a `TimerService` implementation.
+- They are automatically managed when entering and exiting states.
+- Use the fluent API for more readable and flexible configuration.
+
+
 ## License
 
 See [LICENSE](LICENSE) file for details.
