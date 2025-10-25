@@ -153,6 +153,96 @@ sm.start();
 sm.fireEvent("connect");
 ```
 
+## Fluent API for Transitions
+
+Starting from version 1.3.2, Nexum provides a fluent API for creating transitions with a more readable and intuitive syntax. This eliminates the need to explicitly create arrays when defining transitions from multiple states.
+
+### Basic Usage
+
+```java
+// Old style - requires explicit array creation
+sm.addTransition(new DeviceState[] {UNPLUGGED, PLUGGED}, UNPLUGGED, UNPLUG);
+
+// New fluent style - cleaner and more readable
+sm.from(UNPLUGGED, PLUGGED).to(UNPLUGGED).on(UNPLUG);
+```
+
+### Examples
+
+```java
+Nexum<DeviceState, DeviceEvent> sm = new Nexum<>(DeviceState.DISCONNECTED);
+
+// Single source state
+sm.from(DISCONNECTED).to(CONNECTING).on(CONNECT);
+
+// Multiple source states
+sm.from(CONNECTED, BUSY).to(DISCONNECTED).on(DISCONNECT);
+
+// With guard condition - new improved syntax with withGuard()
+sm.from(CONNECTING).to(CONNECTED).on(CONNECT)
+    .withGuard((context, event, data) -> context.get("valid") != null);
+
+// With action - new improved syntax with withAction()
+sm.from(CONNECTED).to(BUSY).on(START_OPERATION)
+    .withAction((context, event, data) -> context.put("startTime", System.currentTimeMillis()));
+
+// With both guard and action - chain them together!
+sm.from(PLUGGED).to(CHARGING).on(PLUG)
+    .withGuard((context, event, data) -> context.get("battery") != null)
+    .withAction((context, event, data) -> {
+        context.put("chargingStarted", true);
+        context.put("startTime", System.currentTimeMillis());
+    });
+
+// Legacy syntax still supported
+sm.from(CONNECTING).to(CONNECTED).on(CONNECT,
+    (context, event, data) -> context.get("valid") != null);
+
+// Multiple events using onAny
+sm.from(BUSY, ERROR).to(DISCONNECTED).onAny(DISCONNECT, ERROR_OCCURRED);
+
+// Method chaining with the new builder pattern - no build() needed!
+sm.from(DISCONNECTED).to(CONNECTING).on(CONNECT)
+    .withAction((context, event, data) -> context.put("connecting", true))
+    .from(CONNECTING).to(CONNECTED).on(CONNECT)
+    .withGuard((context, event, data) -> context.get("connecting") != null)
+    .from(CONNECTED).to(BUSY).on(START_OPERATION)
+    .from(BUSY).to(CONNECTED).on(OPERATION_COMPLETE);
+
+// You can even call start() directly after the fluent chain
+sm.from(DISCONNECTED).to(CONNECTING).on(CONNECT)
+    .withAction((context, event, data) -> context.put("ready", true))
+    .start();
+```
+
+### Available Methods
+
+#### Basic Methods
+- **`from(S... states)`** - Start building a transition from one or more source states
+- **`to(S state)`** - Specify the target state
+- **`on(E event)`** - Specify the event that triggers the transition
+
+#### Optional Modifiers (New!)
+- **`withGuard(guard)`** - Add a guard condition to the transition
+- **`withAction(action)`** - Add an action to execute during the transition
+
+#### Legacy Methods (Still Supported)
+- **`on(E event, guard)`** - Add a guard condition (legacy syntax)
+- **`on(E event, guard, action)`** - Add guard and action (legacy syntax)
+- **`onAny(E... events)`** - Trigger on any of the specified events
+- **`onAny(guard, E... events)`** - Multiple events with guard
+- **`onAny(guard, action, E... events)`** - Multiple events with guard and action
+- **`onAny()`** - Trigger on any event (wildcard events)
+
+### Benefits
+
+- **More readable**: The fluent syntax reads like natural language
+- **Less verbose**: No need to create arrays explicitly or call build()
+- **Flexible**: Choose between `.withGuard()/.withAction()` or legacy syntax
+- **Type-safe**: Full compile-time type checking
+- **Chainable**: Build complex state machines with seamless method chaining
+- **No build() required**: Transitions are automatically finalized when you chain to another method or call state machine methods
+
 ## Features
 
 - **Generic**: Works with any type of state and event (Enum, String, custom classes)
@@ -418,6 +508,120 @@ sm.start();
 - The timer service is optional. If not provided, timer-related methods will throw `IllegalStateException`.
 - You can set or change the timer service at any time using `setTimerService()`.
 - Remember to call `cancel()` on your timer service when it's no longer needed to free resources.
+
+## Periodic Event Triggers
+
+Periodic event triggers allow you to fire events periodically while the state machine is in a specific state, without causing state transitions. This is useful for monitoring, polling, or recurring actions tied to a state.
+
+### Adding Periodic Event Triggers
+
+You can add periodic event triggers either by calling `addPeriodicEventTrigger` directly or by using the fluent API for more readable and flexible configuration.
+
+#### Direct Method
+
+```java
+// Create state machine with timer service
+TimerService timerService = new JavaTimerService();
+Nexum<DeviceState, DeviceEvent> sm = new Nexum<>(DeviceState.DISCONNECTED, timerService);
+
+// Add a periodic event trigger that fires POLL event every 1 second while in MONITORING state
+sm.addPeriodicEventTrigger(
+    DeviceState.MONITORING,
+    DeviceEvent.POLL,
+    1,
+    1,
+    TimeUnit.SECONDS
+);
+
+// Start the state machine
+sm.start();
+```
+
+#### Fluent API Method
+
+```java
+sm.inState(DeviceState.MONITORING)
+  .trigger(DeviceEvent.POLL)
+  .every(1, TimeUnit.SECONDS)
+  .withGuard((context, event, data) -> {
+      // Optional guard condition
+      return true;
+  })
+  .withMaxOccurrences(10); // Optional max number of times to fire event
+```
+
+### How Periodic Event Triggers Work
+
+1. When the state machine enters a state, all periodic event triggers for that state are scheduled.
+2. When the state machine leaves a state, all periodic event triggers for that state are canceled.
+3. Periodic event triggers do not cause state transitions; they only fire events.
+4. You can specify an optional guard condition to control when events are fired.
+5. You can specify an optional maximum number of times to fire the event; if null or 0, events fire indefinitely.
+
+### Notes
+
+- Periodic event triggers require a `TimerService` implementation.
+- They are automatically managed when entering and exiting states.
+- Use the fluent API for more readable and flexible configuration.
+
+## Loop Transitions
+
+Loop transitions allow you to define transitions that remain in the same state when triggered. This is useful for handling events that don't cause state changes but still need to execute actions or guards.
+
+### Basic Loop Transitions
+
+```java
+// Add a loop transition for IDLE state on TICK event
+stateMachine.loop(State.IDLE).on(Event.TICK);
+
+// Add loop transition with action
+stateMachine.loop(State.IDLE)
+    .on(Event.TICK)
+    .withAction((ctx, event, data) -> executionLog.add("TICK action executed"));
+
+// Add loop transition with guard
+stateMachine.loop(State.IDLE)
+    .on(Event.TICK)
+    .withGuard((ctx, event, data) -> counter < 3)
+    .withAction((ctx, event, data) -> counter++);
+```
+
+### Wildcard Loop Transitions
+
+Loop transitions support wildcard states and events for maximum flexibility:
+
+```java
+// Loop transition for all states on specific events
+stateMachine.loop()
+    .onAny(Event.TICK, Event.REFRESH)
+    .withAction((ctx, event, data) -> executionLog.add("Event: " + event));
+
+// Loop transition for specific states on any event (wildcard events)
+stateMachine.loop(State.IDLE, State.RUNNING)
+    .onAny()
+    .withAction((ctx, event, data) -> executionLog.add("Any event in " + ctx.getCurrentState()));
+
+// Loop transition for all states on any event (complete wildcard)
+stateMachine.loop()
+    .onAny()
+    .withAction((ctx, event, data) -> executionLog.add("Catch-all handler"));
+```
+
+### Available Loop Methods
+
+- **`loop(S... states)`** - Start building loop transitions for one or more states (empty for all states)
+- **`on(E event)`** - Specify a single event for the loop transition
+- **`onAny(E... events)`** - Specify multiple events for the loop transition
+- **`onAny()`** - Specify that the loop transition should match any event (wildcard)
+- **`withGuard(guard)`** - Add a guard condition to the loop transition
+- **`withAction(action)`** - Add an action to execute during the loop transition
+
+### Notes
+
+- Loop transitions trigger state handlers (`onExit` and `onEnter`) since they go through the full transition process
+- Wildcard states (empty `loop()` call) match all registered states
+- Wildcard events (`onAny()` without parameters) match any event
+- Loop transitions are evaluated in the order they were added
 
 ## License
 

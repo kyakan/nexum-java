@@ -106,7 +106,19 @@ public class Transition<S, E> {
      * @return true if this transition matches
      */
     public boolean matches(S state, E event) {
-        return this.fromState.equals(state) && this.event.equals(event);
+        // If fromState is null, it's a wildcard that matches any state (fallback)
+        boolean stateMatches = isWildcard() || this.fromState.equals(state);
+        // If event is null, it's a wildcard that matches any event
+        boolean eventMatches = this.event == null || this.event.equals(event);
+        return stateMatches && eventMatches;
+    }
+    
+    /**
+     * Check if this is a wildcard transition (matches any state)
+     * @return true if this transition has no specific fromState
+     */
+    public boolean isWildcard() {
+        return this.fromState == null;
     }
     
     @Override

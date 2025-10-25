@@ -15,7 +15,7 @@ public class ScheduledTransition<S, E> extends Transition<S, E> {
     private final TimerService timerService;
     private final Nexum<S, E> nexum;
     private Runnable scheduledTask;
-    private volatile boolean isScheduled = false;
+    private volatile Boolean isScheduled = null;
 
     /**
      * Create a new scheduled transition
@@ -67,20 +67,6 @@ public class ScheduledTransition<S, E> extends Transition<S, E> {
         this.unit = unit;
         this.timerService = timerService;
         this.nexum = nexum;
-        
-        if (this.timerService == null) {
-            throw new IllegalStateException("No timer service available");
-        }
-        scheduledTask = () -> {
-            if (isScheduled && nexum.getCurrentState().equals(getFromState())) {
-                try {
-                    this.nexum.fireEvent(getEvent());
-                } catch (Exception e) {
-                    throw new RuntimeException("Failed to trigger scheduled transition", e);
-                }
-            }
-        };
-        this.timerService.schedulePeriodically(scheduledTask, delay, delay, unit);
     }
 
     /**
@@ -101,10 +87,29 @@ public class ScheduledTransition<S, E> extends Transition<S, E> {
         return unit;
     }
 
+    public void internallySchedule() {
+        if(isScheduled == null) {
+            if (this.timerService == null) {
+                throw new IllegalStateException("No timer service available");
+            }
+            scheduledTask = () -> {
+                if (isScheduled && nexum.getCurrentState().equals(getFromState())) {
+                    try {
+                        this.nexum.fireEvent(getEvent());
+                    } catch (Exception e) {
+                        throw new RuntimeException("Failed to trigger scheduled transition", e);
+                    }
+                }
+            };
+            this.timerService.schedulePeriodically(scheduledTask, delay, delay, unit);
+        }
+    }
+
     /**
      * Schedule this transition to be triggered after the delay
      */
     public void schedule() {
+        internallySchedule();
         isScheduled = true;
     }
 
@@ -112,6 +117,7 @@ public class ScheduledTransition<S, E> extends Transition<S, E> {
      * Cancel the scheduled transition
      */
     public void cancel() {
+        internallySchedule();
         isScheduled = false;
     }
 }
