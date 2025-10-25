@@ -297,12 +297,13 @@ public class LoopTransitionTest {
         stateMachine.fireEvent(Event.TICK);
         assertEquals("IDLE TICK", executionLog.get(0));
 
-        assertThrows(NexumException.class, () -> {
-            stateMachine.fireEvent(Event.REFRESH);
-            assertEquals("RUNNING ALL", executionLog.get(1));
-            stateMachine.fireEvent(Event.LOG);
-            assertEquals("RUNNING ALL", executionLog.get(1));
-        });
+        stateMachine.fireEvent(Event.REFRESH);
+        assertEquals("RUNNING ALL", executionLog.get(1));
+        stateMachine.fireEvent(Event.LOG);
+        assertEquals("RUNNING ALL", executionLog.get(1));
+
+        assertThrows(NexumException.class, () -> stateMachine.fireEvent(Event.VALIDATE));
+
     }
 
 }

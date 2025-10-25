@@ -1717,6 +1717,11 @@ public class Nexum<S, E> {
     private void executeTransition(Transition<S, E> transition, E event, Object eventData) {
         S fromState = context.getCurrentState();
         S toState = transition.getToState();
+        
+        // If toState is null, it's a wildcard loop - stay in current state
+        if (toState == null) {
+            toState = fromState;
+        }
 
         // Call onExit for the current state
         StateHandler<S, E> fromHandler = stateHandlers.get(fromState);
@@ -2048,15 +2053,20 @@ public class Nexum<S, E> {
         private void addLoopTransitionsInternal() {
             lock.lock();
             try {
-                List<S> statesToUse;
                 if (states == null || states.length == 0) {
-                    statesToUse = new ArrayList<>(stateHandlers.keySet());
-                } else {
-                    statesToUse = List.of(states);
-                }
-                for (S state : statesToUse) {
+                    // Wildcard loop: matches any state (fallback behavior)
                     for (E event : events) {
-                        addTransition(state, state, event, guard, action);
+                        // Use null as fromState and toState to indicate wildcard loop
+                        Transition<S, E> wildcardTransition = new Transition<>(null, null, event, guard, action);
+                        transitions.add(wildcardTransition);
+                    }
+                } else {
+                    // Specific states loop
+                    List<S> statesToUse = List.of(states);
+                    for (S state : statesToUse) {
+                        for (E event : events) {
+                            addTransition(state, state, event, guard, action);
+                        }
                     }
                 }
             } finally {
@@ -2075,21 +2085,29 @@ public class Nexum<S, E> {
             // Remove and re-add with guard
             lock.lock();
             try {
-                List<S> statesToUse;
                 if (states == null || states.length == 0) {
-                    statesToUse = new ArrayList<>(stateHandlers.keySet());
-                } else {
-                    statesToUse = List.of(states);
-                }
-                // Remove previously added transitions
-                int toRemove = statesToUse.size() * events.length;
-                for (int i = 0; i < toRemove; i++) {
-                    transitions.remove(transitions.size() - 1);
-                }
-                // Re-add with guard
-                for (S state : statesToUse) {
+                    // Wildcard transitions
+                    int toRemove = events.length;
+                    for (int i = 0; i < toRemove; i++) {
+                        transitions.remove(transitions.size() - 1);
+                    }
+                    // Re-add with guard
                     for (E event : events) {
-                        addTransition(state, state, event, guard, action);
+                        Transition<S, E> wildcardTransition = new Transition<>(null, null, event, guard, action);
+                        transitions.add(wildcardTransition);
+                    }
+                } else {
+                    // Specific state transitions
+                    List<S> statesToUse = List.of(states);
+                    int toRemove = statesToUse.size() * events.length;
+                    for (int i = 0; i < toRemove; i++) {
+                        transitions.remove(transitions.size() - 1);
+                    }
+                    // Re-add with guard
+                    for (S state : statesToUse) {
+                        for (E event : events) {
+                            addTransition(state, state, event, guard, action);
+                        }
                     }
                 }
             } finally {
@@ -2109,21 +2127,29 @@ public class Nexum<S, E> {
             // Remove and re-add with action
             lock.lock();
             try {
-                List<S> statesToUse;
                 if (states == null || states.length == 0) {
-                    statesToUse = new ArrayList<>(stateHandlers.keySet());
-                } else {
-                    statesToUse = List.of(states);
-                }
-                // Remove previously added transitions
-                int toRemove = statesToUse.size() * events.length;
-                for (int i = 0; i < toRemove; i++) {
-                    transitions.remove(transitions.size() - 1);
-                }
-                // Re-add with action
-                for (S state : statesToUse) {
+                    // Wildcard transitions
+                    int toRemove = events.length;
+                    for (int i = 0; i < toRemove; i++) {
+                        transitions.remove(transitions.size() - 1);
+                    }
+                    // Re-add with action
                     for (E event : events) {
-                        addTransition(state, state, event, guard, action);
+                        Transition<S, E> wildcardTransition = new Transition<>(null, null, event, guard, action);
+                        transitions.add(wildcardTransition);
+                    }
+                } else {
+                    // Specific state transitions
+                    List<S> statesToUse = List.of(states);
+                    int toRemove = statesToUse.size() * events.length;
+                    for (int i = 0; i < toRemove; i++) {
+                        transitions.remove(transitions.size() - 1);
+                    }
+                    // Re-add with action
+                    for (S state : statesToUse) {
+                        for (E event : events) {
+                            addTransition(state, state, event, guard, action);
+                        }
                     }
                 }
             } finally {
