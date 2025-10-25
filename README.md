@@ -232,6 +232,7 @@ sm.from(DISCONNECTED).to(CONNECTING).on(CONNECT)
 - **`onAny(E... events)`** - Trigger on any of the specified events
 - **`onAny(guard, E... events)`** - Multiple events with guard
 - **`onAny(guard, action, E... events)`** - Multiple events with guard and action
+- **`onAny()`** - Trigger on any event (wildcard events)
 
 ### Benefits
 
@@ -563,6 +564,64 @@ sm.inState(DeviceState.MONITORING)
 - They are automatically managed when entering and exiting states.
 - Use the fluent API for more readable and flexible configuration.
 
+## Loop Transitions
+
+Loop transitions allow you to define transitions that remain in the same state when triggered. This is useful for handling events that don't cause state changes but still need to execute actions or guards.
+
+### Basic Loop Transitions
+
+```java
+// Add a loop transition for IDLE state on TICK event
+stateMachine.loop(State.IDLE).on(Event.TICK);
+
+// Add loop transition with action
+stateMachine.loop(State.IDLE)
+    .on(Event.TICK)
+    .withAction((ctx, event, data) -> executionLog.add("TICK action executed"));
+
+// Add loop transition with guard
+stateMachine.loop(State.IDLE)
+    .on(Event.TICK)
+    .withGuard((ctx, event, data) -> counter < 3)
+    .withAction((ctx, event, data) -> counter++);
+```
+
+### Wildcard Loop Transitions
+
+Loop transitions support wildcard states and events for maximum flexibility:
+
+```java
+// Loop transition for all states on specific events
+stateMachine.loop()
+    .onAny(Event.TICK, Event.REFRESH)
+    .withAction((ctx, event, data) -> executionLog.add("Event: " + event));
+
+// Loop transition for specific states on any event (wildcard events)
+stateMachine.loop(State.IDLE, State.RUNNING)
+    .onAny()
+    .withAction((ctx, event, data) -> executionLog.add("Any event in " + ctx.getCurrentState()));
+
+// Loop transition for all states on any event (complete wildcard)
+stateMachine.loop()
+    .onAny()
+    .withAction((ctx, event, data) -> executionLog.add("Catch-all handler"));
+```
+
+### Available Loop Methods
+
+- **`loop(S... states)`** - Start building loop transitions for one or more states (empty for all states)
+- **`on(E event)`** - Specify a single event for the loop transition
+- **`onAny(E... events)`** - Specify multiple events for the loop transition
+- **`onAny()`** - Specify that the loop transition should match any event (wildcard)
+- **`withGuard(guard)`** - Add a guard condition to the loop transition
+- **`withAction(action)`** - Add an action to execute during the loop transition
+
+### Notes
+
+- Loop transitions trigger state handlers (`onExit` and `onEnter`) since they go through the full transition process
+- Wildcard states (empty `loop()` call) match all registered states
+- Wildcard events (`onAny()` without parameters) match any event
+- Loop transitions are evaluated in the order they were added
 
 ## License
 

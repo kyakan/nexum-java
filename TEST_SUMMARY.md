@@ -2,7 +2,7 @@
 
 ## Overview
 
-A comprehensive test suite has been created for the Nexum project with **5 test classes** containing extensive unit and integration tests.
+A comprehensive test suite has been created for the Nexum project with **12 test classes** containing extensive unit and integration tests.
 
 ## Created Files
 
@@ -35,6 +35,34 @@ A comprehensive test suite has been created for the Nexum project with **5 test 
      - Vending Machine (business logic)
      - Connection with Retry (error handling)
 
+6. **[`test/it/kyakan/nexum/LoopTransitionTest.java`](test/it/kyakan/nexum/LoopTransitionTest.java)** (334 lines)
+   - 11 test methods covering loop transitions
+   - Tests loop transitions with actions, guards, wildcard states and events
+
+7. **[`test/it/kyakan/nexum/ScheduledTransitionTest.java`](test/it/kyakan/nexum/ScheduledTransitionTest.java)** (200+ lines)
+   - 12 test methods covering scheduled transitions
+   - Tests delayed transitions with timing and cancellation
+
+8. **[`test/it/kyakan/nexum/PeriodicEventTriggerTest.java`](test/it/kyakan/nexum/PeriodicEventTriggerTest.java)** (150+ lines)
+   - 7 test methods covering periodic event triggers
+   - Tests recurring events with guards and max occurrences
+
+9. **[`test/it/kyakan/nexum/FluentApiTest.java`](test/it/kyakan/nexum/FluentApiTest.java)** (200+ lines)
+   - 16 test methods covering fluent API functionality
+   - Tests method chaining, guard/action modifiers
+
+10. **[`test/it/kyakan/nexum/FluentScheduledApiTest.java`](test/it/kyakan/nexum/FluentScheduledApiTest.java)** (100+ lines)
+    - 9 test methods covering fluent scheduled transitions
+    - Tests scheduled transition fluent API
+
+11. **[`test/it/kyakan/nexum/FluentApiScheduledTest.java`](test/it/kyakan/nexum/FluentApiScheduledTest.java)** (100+ lines)
+    - 5 test methods covering fluent API with scheduling
+    - Tests combined fluent and scheduled functionality
+
+12. **[`test/it/kyakan/nexum/TimerServiceTest.java`](test/it/kyakan/nexum/TimerServiceTest.java)** (100+ lines)
+    - 4 test methods covering timer service implementations
+    - Tests timer functionality and scheduling
+
 ### Documentation
 - **[`test/README.md`](test/README.md)** - Comprehensive test documentation
 - **[`.gitignore`](.gitignore)** - Git ignore configuration
@@ -42,9 +70,9 @@ A comprehensive test suite has been created for the Nexum project with **5 test 
 
 ## Test Statistics
 
-- **Total Test Classes**: 5
-- **Total Test Methods**: 78+
-- **Total Lines of Test Code**: ~1,300
+- **Total Test Classes**: 12
+- **Total Test Methods**: 146+
+- **Total Lines of Test Code**: ~2,000+
 - **Coverage Areas**:
   - ✅ State management and transitions
   - ✅ Guard conditions and actions
@@ -54,6 +82,11 @@ A comprehensive test suite has been created for the Nexum project with **5 test 
   - ✅ Thread safety
   - ✅ Context data management
   - ✅ Real-world integration scenarios
+  - ✅ Loop transitions with wildcard states and events
+  - ✅ Scheduled transitions with timing
+  - ✅ Periodic event triggers
+  - ✅ Fluent API functionality
+  - ✅ Timer service implementations
 
 ## Test Features
 
