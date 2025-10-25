@@ -2024,6 +2024,15 @@ public class Nexum<S, E> {
         public final LoopEventBuilder onAny(E... events) {
             return new LoopEventBuilder(states, events);
         }
+
+        /**
+         * Specify that the loop transition should match any event (wildcard)
+         *
+         * @return A LoopEventBuilder for adding optional guard and action
+         */
+        public LoopEventBuilder onAny() {
+            return new LoopEventBuilder(states);
+        }
     }
 
     /**
@@ -2050,22 +2059,48 @@ public class Nexum<S, E> {
             addLoopTransitionsInternal();
         }
 
+        private LoopEventBuilder(S[] states) {
+            this.states = states;
+            this.events = null;
+            // Add basic loop transitions immediately
+            addLoopTransitionsInternal();
+        }
+
         private void addLoopTransitionsInternal() {
             lock.lock();
             try {
-                if (states == null || states.length == 0) {
-                    // Wildcard loop: matches any state (fallback behavior)
-                    for (E event : events) {
-                        // Use null as fromState and toState to indicate wildcard loop
-                        Transition<S, E> wildcardTransition = new Transition<>(null, null, event, guard, action);
+                if (events == null) {
+                    // Wildcard events: matches any event
+                    if (states == null || states.length == 0) {
+                        // Wildcard states and wildcard events: matches any state and any event
+                        // Use null as fromState, toState, and event to indicate wildcard loop
+                        Transition<S, E> wildcardTransition = new Transition<>(null, null, null, guard, action);
                         transitions.add(wildcardTransition);
+                    } else {
+                        // Specific states with wildcard events: matches any event for specific states
+                        List<S> statesToUse = List.of(states);
+                        for (S state : statesToUse) {
+                            // Use null as event to indicate wildcard event
+                            Transition<S, E> wildcardTransition = new Transition<>(state, state, null, guard, action);
+                            transitions.add(wildcardTransition);
+                        }
                     }
                 } else {
-                    // Specific states loop
-                    List<S> statesToUse = List.of(states);
-                    for (S state : statesToUse) {
+                    // Specific events
+                    if (states == null || states.length == 0) {
+                        // Wildcard states with specific events: matches any state for specific events
                         for (E event : events) {
-                            addTransition(state, state, event, guard, action);
+                            // Use null as fromState and toState to indicate wildcard loop
+                            Transition<S, E> wildcardTransition = new Transition<>(null, null, event, guard, action);
+                            transitions.add(wildcardTransition);
+                        }
+                    } else {
+                        // Specific states and specific events
+                        List<S> statesToUse = List.of(states);
+                        for (S state : statesToUse) {
+                            for (E event : events) {
+                                addTransition(state, state, event, guard, action);
+                            }
                         }
                     }
                 }
@@ -2085,28 +2120,52 @@ public class Nexum<S, E> {
             // Remove and re-add with guard
             lock.lock();
             try {
-                if (states == null || states.length == 0) {
-                    // Wildcard transitions
-                    int toRemove = events.length;
-                    for (int i = 0; i < toRemove; i++) {
+                if (events == null) {
+                    // Wildcard events
+                    if (states == null || states.length == 0) {
+                        // Wildcard states and wildcard events: remove 1 transition
                         transitions.remove(transitions.size() - 1);
-                    }
-                    // Re-add with guard
-                    for (E event : events) {
-                        Transition<S, E> wildcardTransition = new Transition<>(null, null, event, guard, action);
+                        // Re-add with guard
+                        Transition<S, E> wildcardTransition = new Transition<>(null, null, null, guard, action);
                         transitions.add(wildcardTransition);
+                    } else {
+                        // Specific states with wildcard events: remove states.length transitions
+                        List<S> statesToUse = List.of(states);
+                        int toRemove = statesToUse.size();
+                        for (int i = 0; i < toRemove; i++) {
+                            transitions.remove(transitions.size() - 1);
+                        }
+                        // Re-add with guard
+                        for (S state : statesToUse) {
+                            Transition<S, E> wildcardTransition = new Transition<>(state, state, null, guard, action);
+                            transitions.add(wildcardTransition);
+                        }
                     }
                 } else {
-                    // Specific state transitions
-                    List<S> statesToUse = List.of(states);
-                    int toRemove = statesToUse.size() * events.length;
-                    for (int i = 0; i < toRemove; i++) {
-                        transitions.remove(transitions.size() - 1);
-                    }
-                    // Re-add with guard
-                    for (S state : statesToUse) {
+                    // Specific events
+                    if (states == null || states.length == 0) {
+                        // Wildcard states with specific events
+                        int toRemove = events.length;
+                        for (int i = 0; i < toRemove; i++) {
+                            transitions.remove(transitions.size() - 1);
+                        }
+                        // Re-add with guard
                         for (E event : events) {
-                            addTransition(state, state, event, guard, action);
+                            Transition<S, E> wildcardTransition = new Transition<>(null, null, event, guard, action);
+                            transitions.add(wildcardTransition);
+                        }
+                    } else {
+                        // Specific state transitions
+                        List<S> statesToUse = List.of(states);
+                        int toRemove = statesToUse.size() * events.length;
+                        for (int i = 0; i < toRemove; i++) {
+                            transitions.remove(transitions.size() - 1);
+                        }
+                        // Re-add with guard
+                        for (S state : statesToUse) {
+                            for (E event : events) {
+                                addTransition(state, state, event, guard, action);
+                            }
                         }
                     }
                 }
@@ -2127,28 +2186,52 @@ public class Nexum<S, E> {
             // Remove and re-add with action
             lock.lock();
             try {
-                if (states == null || states.length == 0) {
-                    // Wildcard transitions
-                    int toRemove = events.length;
-                    for (int i = 0; i < toRemove; i++) {
+                if (events == null) {
+                    // Wildcard events
+                    if (states == null || states.length == 0) {
+                        // Wildcard states and wildcard events: remove 1 transition
                         transitions.remove(transitions.size() - 1);
-                    }
-                    // Re-add with action
-                    for (E event : events) {
-                        Transition<S, E> wildcardTransition = new Transition<>(null, null, event, guard, action);
+                        // Re-add with action
+                        Transition<S, E> wildcardTransition = new Transition<>(null, null, null, guard, action);
                         transitions.add(wildcardTransition);
+                    } else {
+                        // Specific states with wildcard events: remove states.length transitions
+                        List<S> statesToUse = List.of(states);
+                        int toRemove = statesToUse.size();
+                        for (int i = 0; i < toRemove; i++) {
+                            transitions.remove(transitions.size() - 1);
+                        }
+                        // Re-add with action
+                        for (S state : statesToUse) {
+                            Transition<S, E> wildcardTransition = new Transition<>(state, state, null, guard, action);
+                            transitions.add(wildcardTransition);
+                        }
                     }
                 } else {
-                    // Specific state transitions
-                    List<S> statesToUse = List.of(states);
-                    int toRemove = statesToUse.size() * events.length;
-                    for (int i = 0; i < toRemove; i++) {
-                        transitions.remove(transitions.size() - 1);
-                    }
-                    // Re-add with action
-                    for (S state : statesToUse) {
+                    // Specific events
+                    if (states == null || states.length == 0) {
+                        // Wildcard states with specific events
+                        int toRemove = events.length;
+                        for (int i = 0; i < toRemove; i++) {
+                            transitions.remove(transitions.size() - 1);
+                        }
+                        // Re-add with action
                         for (E event : events) {
-                            addTransition(state, state, event, guard, action);
+                            Transition<S, E> wildcardTransition = new Transition<>(null, null, event, guard, action);
+                            transitions.add(wildcardTransition);
+                        }
+                    } else {
+                        // Specific state transitions
+                        List<S> statesToUse = List.of(states);
+                        int toRemove = statesToUse.size() * events.length;
+                        for (int i = 0; i < toRemove; i++) {
+                            transitions.remove(transitions.size() - 1);
+                        }
+                        // Re-add with action
+                        for (S state : statesToUse) {
+                            for (E event : events) {
+                                addTransition(state, state, event, guard, action);
+                            }
                         }
                     }
                 }
