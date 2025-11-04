@@ -4,7 +4,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -28,6 +31,8 @@ public class Nexum<S, E> {
     private boolean started;
     private StateHandler<S, E> defaultHandler = null;
     private TimerService timerService;
+    private AsyncScheduler asyncScheduler;
+    private boolean asyncEnabled = false;
 
     /**
      * Create a new state machine with the given initial state
@@ -35,7 +40,17 @@ public class Nexum<S, E> {
      * @param initialState The initial state
      */
     public Nexum(S initialState) {
-        this(initialState, null);
+        this.context = new NexumContext<>(initialState);
+        this.transitions = new ArrayList<>();
+        this.scheduledTransitions = new ArrayList<>();
+        this.periodicEventTriggers = new ArrayList<>();
+        this.stateHandlers = new HashMap<>();
+        this.listeners = new CopyOnWriteArrayList<>();
+        this.lock = new ReentrantLock();
+        this.started = false;
+        this.timerService = null;
+        this.asyncScheduler = null;
+        this.asyncEnabled = false;
     }
 
     /**
@@ -54,6 +69,49 @@ public class Nexum<S, E> {
         this.lock = new ReentrantLock();
         this.started = false;
         this.timerService = timerService;
+        this.asyncScheduler = null;
+        this.asyncEnabled = false;
+    }
+
+    /**
+     * Create a new state machine with the given initial state and async scheduler
+     *
+     * @param initialState The initial state
+     * @param asyncScheduler The async scheduler to use for asynchronous handler execution
+     */
+    public Nexum(S initialState, AsyncScheduler asyncScheduler) {
+        this.context = new NexumContext<>(initialState);
+        this.transitions = new ArrayList<>();
+        this.scheduledTransitions = new ArrayList<>();
+        this.periodicEventTriggers = new ArrayList<>();
+        this.stateHandlers = new HashMap<>();
+        this.listeners = new CopyOnWriteArrayList<>();
+        this.lock = new ReentrantLock();
+        this.started = false;
+        this.timerService = null;
+        this.asyncScheduler = asyncScheduler;
+        this.asyncEnabled = true;
+    }
+
+    /**
+     * Create a new state machine with the given initial state, timer service, and async scheduler
+     *
+     * @param initialState The initial state
+     * @param timerService The timer service to use for scheduling events
+     * @param asyncScheduler The async scheduler to use for asynchronous handler execution
+     */
+    public Nexum(S initialState, TimerService timerService, AsyncScheduler asyncScheduler) {
+        this.context = new NexumContext<>(initialState);
+        this.transitions = new ArrayList<>();
+        this.scheduledTransitions = new ArrayList<>();
+        this.periodicEventTriggers = new ArrayList<>();
+        this.stateHandlers = new HashMap<>();
+        this.listeners = new CopyOnWriteArrayList<>();
+        this.lock = new ReentrantLock();
+        this.started = false;
+        this.timerService = timerService;
+        this.asyncScheduler = asyncScheduler;
+        this.asyncEnabled = true;
     }
 
     /**
@@ -1593,13 +1651,32 @@ public class Nexum<S, E> {
             S currentState = context.getCurrentState();
             StateHandler<S, E> handler = stateHandlers.get(currentState);
             if (handler != null) {
-                handler.onEnter(context, null, null);
+                if (asyncEnabled && asyncScheduler != null) {
+                    // Execute onEnter asynchronously
+                    CompletableFuture<Void> enterFuture;
+                    if (handler instanceof AsyncStateHandler) {
+                        enterFuture = ((AsyncStateHandler<S, E>) handler).onEnterAsync(context, null, null);
+                    } else {
+                        enterFuture = asyncScheduler.executeAsync(handler, AsyncScheduler.HandlerExecution.ON_ENTER,
+                            context, null, currentState, null, null);
+                    }
+                    enterFuture.thenRun(() -> {
+                        // Schedule transitions for the initial state
+                        scheduleTransitionsForState(currentState);
+                        notifyStateChanged(null, currentState, null);
+                    });
+                } else {
+                    // Execute onEnter synchronously
+                    handler.onEnter(context, null, null);
+                    // Schedule transitions for the initial state
+                    scheduleTransitionsForState(currentState);
+                    notifyStateChanged(null, currentState, null);
+                }
+            } else {
+                // No handler, just schedule transitions and notify
+                scheduleTransitionsForState(currentState);
+                notifyStateChanged(null, currentState, null);
             }
-
-            // Schedule transitions for the initial state
-            scheduleTransitionsForState(currentState);
-
-            notifyStateChanged(null, currentState, null);
         } finally {
             lock.unlock();
         }
@@ -1633,16 +1710,36 @@ public class Nexum<S, E> {
 
             // First, let the current state handler try to handle the event
             StateHandler<S, E> currentHandler = stateHandlers.get(currentState);
-            if (currentHandler != null && currentHandler.handleEvent(context, event, eventData)) {
-                // Event was handled by the state handler, no transition needed
-                return;
+            if (currentHandler != null) {
+                if (asyncEnabled && asyncScheduler != null) {
+                    // Handle event asynchronously
+                    CompletableFuture<Boolean> handledFuture;
+                    if (currentHandler instanceof AsyncStateHandler) {
+                        handledFuture = ((AsyncStateHandler<S, E>) currentHandler).handleEventAsync(context, event, eventData);
+                    } else {
+                        handledFuture = asyncScheduler.executeAsync(currentHandler, AsyncScheduler.HandlerExecution.HANDLE_EVENT,
+                            context, currentState, currentState, event, eventData)
+                            .thenApply(v -> currentHandler.handleEvent(context, event, eventData));
+                    }
+                    // Wait for async handling to complete before proceeding
+                    if (handledFuture.join()) {
+                        // Event was handled by the state handler, no transition needed
+                        return;
+                    }
+                } else {
+                    // Handle event synchronously
+                    if (currentHandler.handleEvent(context, event, eventData)) {
+                        // Event was handled by the state handler, no transition needed
+                        return;
+                    }
+                }
             }
 
             // Find a matching transition
             Transition<S, E> matchingTransition = null;
             for (Transition<S, E> transition : transitions) {
                 if (transition.matches(currentState, event)) {
-                    if (transition.canTransition(context, eventData)) {
+                    if (transition.canTransition(context, event, eventData)) {
                         matchingTransition = transition;
                         break;
                     }
@@ -1723,6 +1820,19 @@ public class Nexum<S, E> {
             toState = fromState;
         }
 
+        if (asyncEnabled && asyncScheduler != null) {
+            // Execute transition asynchronously
+            executeTransitionAsync(transition, fromState, toState, event, eventData);
+        } else {
+            // Execute transition synchronously
+            executeTransitionSync(transition, fromState, toState, event, eventData);
+        }
+    }
+
+    /**
+     * Execute a transition synchronously
+     */
+    private void executeTransitionSync(Transition<S, E> transition, S fromState, S toState, E event, Object eventData) {
         // Call onExit for the current state
         StateHandler<S, E> fromHandler = stateHandlers.get(fromState);
         if (fromHandler != null) {
@@ -1733,7 +1843,7 @@ public class Nexum<S, E> {
         cancelTransitionsForState(fromState);
 
         // Execute transition action
-        transition.executeAction(context, eventData);
+        transition.executeAction(context, event, eventData);
 
         // Update the state
         context.setCurrentState(toState);
@@ -1749,6 +1859,56 @@ public class Nexum<S, E> {
 
         // Notify listeners
         notifyStateChanged(fromState, toState, event);
+    }
+
+    /**
+     * Execute a transition asynchronously
+     */
+    private void executeTransitionAsync(Transition<S, E> transition, S fromState, S toState, E event, Object eventData) {
+        // Call onExit for the current state asynchronously
+        StateHandler<S, E> fromHandler = stateHandlers.get(fromState);
+        CompletableFuture<Void> exitFuture = CompletableFuture.completedFuture(null);
+        if (fromHandler != null) {
+            if (fromHandler instanceof AsyncStateHandler) {
+                exitFuture = ((AsyncStateHandler<S, E>) fromHandler).onExitAsync(context, toState, event);
+            } else {
+                exitFuture = asyncScheduler.executeAsync(fromHandler, AsyncScheduler.HandlerExecution.ON_EXIT,
+                    context, fromState, toState, event, eventData);
+            }
+        }
+
+        // After exit completes, execute the rest of the transition
+        exitFuture.thenRun(() -> {
+            // Cancel scheduled transitions for the current state
+            cancelTransitionsForState(fromState);
+
+            // Execute transition action
+            transition.executeAction(context, event, eventData);
+
+            // Update the state
+            context.setCurrentState(toState);
+
+            // Call onEnter for the new state asynchronously
+            StateHandler<S, E> toHandler = stateHandlers.get(toState);
+            CompletableFuture<Void> enterFuture = CompletableFuture.completedFuture(null);
+            if (toHandler != null) {
+                if (toHandler instanceof AsyncStateHandler) {
+                    enterFuture = ((AsyncStateHandler<S, E>) toHandler).onEnterAsync(context, fromState, event);
+                } else {
+                    enterFuture = asyncScheduler.executeAsync(toHandler, AsyncScheduler.HandlerExecution.ON_ENTER,
+                        context, fromState, toState, event, eventData);
+                }
+            }
+
+            // After enter completes, schedule transitions and notify listeners
+            enterFuture.thenRun(() -> {
+                // Schedule transitions for the new state
+                scheduleTransitionsForState(toState);
+
+                // Notify listeners
+                notifyStateChanged(fromState, toState, event);
+            });
+        });
     }
 
     /**
@@ -1776,6 +1936,34 @@ public class Nexum<S, E> {
      */
     public void setTimerService(TimerService timerService) {
         this.timerService = timerService;
+    }
+
+    /**
+     * Sets the async scheduler to use for asynchronous handler execution
+     *
+     * @param asyncScheduler The async scheduler
+     */
+    public void setAsyncScheduler(AsyncScheduler asyncScheduler) {
+        this.asyncScheduler = asyncScheduler;
+        this.asyncEnabled = asyncScheduler != null;
+    }
+
+    /**
+     * Enable or disable asynchronous handler execution
+     *
+     * @param enabled true to enable async execution, false to disable
+     */
+    public void setAsyncEnabled(boolean enabled) {
+        this.asyncEnabled = enabled && asyncScheduler != null;
+    }
+
+    /**
+     * Check if asynchronous handler execution is enabled
+     *
+     * @return true if async execution is enabled
+     */
+    public boolean isAsyncEnabled() {
+        return asyncEnabled;
     }
 
     /**
@@ -1849,7 +2037,7 @@ public class Nexum<S, E> {
      * Reset the state machine to a new state
      * This will call exit handlers for the current state and enter handlers for the
      * new state
-     * 
+     *
      * @param newState The new state to reset to
      */
     public void reset(S newState) {
@@ -1857,12 +2045,65 @@ public class Nexum<S, E> {
         try {
             S oldState = context.getCurrentState();
 
-            // Call onExit for current state
-            StateHandler<S, E> oldHandler = stateHandlers.get(oldState);
-            if (oldHandler != null) {
-                oldHandler.onExit(context, newState, null);
+            if (asyncEnabled && asyncScheduler != null) {
+                // Execute reset asynchronously
+                resetAsync(oldState, newState);
+            } else {
+                // Execute reset synchronously
+                resetSync(oldState, newState);
             }
+        } finally {
+            lock.unlock();
+        }
+    }
 
+    /**
+     * Execute reset synchronously
+     */
+    private void resetSync(S oldState, S newState) {
+        // Call onExit for current state
+        StateHandler<S, E> oldHandler = stateHandlers.get(oldState);
+        if (oldHandler != null) {
+            oldHandler.onExit(context, newState, null);
+        }
+
+        // Clear context data
+        context.clear();
+        context.clearLastError();
+
+        // Set new state
+        context.setCurrentState(newState);
+
+        // Schedule transitions for the new state
+        scheduleTransitionsForState(newState);
+
+        // Call onEnter for new state
+        StateHandler<S, E> newHandler = stateHandlers.get(newState);
+        if (newHandler != null) {
+            newHandler.onEnter(context, oldState, null);
+        }
+
+        notifyStateChanged(oldState, newState, null);
+    }
+
+    /**
+     * Execute reset asynchronously
+     */
+    private void resetAsync(S oldState, S newState) {
+        // Call onExit for the current state asynchronously
+        StateHandler<S, E> oldHandler = stateHandlers.get(oldState);
+        CompletableFuture<Void> exitFuture = CompletableFuture.completedFuture(null);
+        if (oldHandler != null) {
+            if (oldHandler instanceof AsyncStateHandler) {
+                exitFuture = ((AsyncStateHandler<S, E>) oldHandler).onExitAsync(context, newState, null);
+            } else {
+                exitFuture = asyncScheduler.executeAsync(oldHandler, AsyncScheduler.HandlerExecution.ON_EXIT,
+                    context, oldState, newState, null, null);
+            }
+        }
+
+        // After exit completes, execute the rest of the reset
+        exitFuture.thenRun(() -> {
             // Clear context data
             context.clear();
             context.clearLastError();
@@ -1873,16 +2114,23 @@ public class Nexum<S, E> {
             // Schedule transitions for the new state
             scheduleTransitionsForState(newState);
 
-            // Call onEnter for new state
+            // Call onEnter for new state asynchronously
             StateHandler<S, E> newHandler = stateHandlers.get(newState);
+            CompletableFuture<Void> enterFuture = CompletableFuture.completedFuture(null);
             if (newHandler != null) {
-                newHandler.onEnter(context, oldState, null);
+                if (newHandler instanceof AsyncStateHandler) {
+                    enterFuture = ((AsyncStateHandler<S, E>) newHandler).onEnterAsync(context, oldState, null);
+                } else {
+                    enterFuture = asyncScheduler.executeAsync(newHandler, AsyncScheduler.HandlerExecution.ON_ENTER,
+                        context, oldState, newState, null, null);
+                }
             }
 
-            notifyStateChanged(oldState, newState, null);
-        } finally {
-            lock.unlock();
-        }
+            // After enter completes, notify listeners
+            enterFuture.thenRun(() -> {
+                notifyStateChanged(oldState, newState, null);
+            });
+        });
     }
 
     /**

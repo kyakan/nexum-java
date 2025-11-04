@@ -50,7 +50,7 @@ class TransitionTest {
     void testCanTransitionWithoutGuard() {
         Transition<TestState, TestEvent> transition = new Transition<>(TestState.IDLE, TestState.RUNNING,
                 TestEvent.START);
-        assertTrue(transition.canTransition(context, null));
+        assertTrue(transition.canTransition(context, TestEvent.START, null));
     }
 
     @Test
@@ -62,9 +62,9 @@ class TransitionTest {
         };
         Transition<TestState, TestEvent> transition = new Transition<>(TestState.IDLE, TestState.RUNNING,
                 TestEvent.START, guard);
-        assertTrue(transition.canTransition(context, 10));
-        assertFalse(transition.canTransition(context, -5));
-        assertFalse(transition.canTransition(context, null));
+        assertTrue(transition.canTransition(context, TestEvent.START, 10));
+        assertFalse(transition.canTransition(context, TestEvent.START, -5));
+        assertFalse(transition.canTransition(context, TestEvent.START, null));
     }
 
     @Test
@@ -77,7 +77,7 @@ class TransitionTest {
         };
         Transition<TestState, TestEvent> transition = new Transition<>(TestState.IDLE, TestState.RUNNING,
                 TestEvent.START, null, action);
-        transition.executeAction(context, null);
+        transition.executeAction(context, TestEvent.START, null);
         assertTrue(actionExecuted[0]);
         assertTrue(context.contains("executed"));
     }
@@ -87,7 +87,7 @@ class TransitionTest {
     void testExecuteActionNull() {
         Transition<TestState, TestEvent> transition = new Transition<>(TestState.IDLE, TestState.RUNNING,
                 TestEvent.START);
-        assertDoesNotThrow(() -> transition.executeAction(context, null));
+        assertDoesNotThrow(() -> transition.executeAction(context, TestEvent.START, null));
     }
 
     @Test
@@ -100,7 +100,7 @@ class TransitionTest {
         Transition<TestState, TestEvent> transition = new Transition<>(TestState.IDLE, TestState.RUNNING,
                 TestEvent.START, null, action);
         String testData = "test data";
-        transition.executeAction(context, testData);
+        transition.executeAction(context, TestEvent.START, testData);
         assertEquals(testData, receivedData[0]);
     }
 
@@ -114,7 +114,7 @@ class TransitionTest {
         };
         Transition<TestState, TestEvent> transition = new Transition<>(TestState.IDLE, TestState.RUNNING,
                 TestEvent.START, guard);
-        transition.canTransition(context, null);
+        transition.canTransition(context, TestEvent.START, null);
         assertEquals(TestEvent.START, receivedEvent[0]);
     }
 
@@ -162,9 +162,9 @@ class TransitionTest {
         };
         Transition<TestState, TestEvent> transition = new Transition<>(TestState.IDLE, TestState.RUNNING,
                 TestEvent.START, guard);
-        assertTrue(transition.canTransition(context, null));
+        assertTrue(transition.canTransition(context, TestEvent.START, null));
         context.put("allowed", false);
-        assertFalse(transition.canTransition(context, null));
+        assertFalse(transition.canTransition(context, TestEvent.START, null));
     }
 
     @Test
@@ -176,7 +176,7 @@ class TransitionTest {
         };
         Transition<TestState, TestEvent> transition = new Transition<>(TestState.IDLE, TestState.RUNNING,
                 TestEvent.START, null, action);
-        transition.executeAction(context, null);
+        transition.executeAction(context, TestEvent.START, null);
         assertEquals(1, context.get("counter"));
         assertEquals("START", context.get("event"));
     }

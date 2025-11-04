@@ -81,7 +81,7 @@ public class Transition<S, E> {
      * @param eventData The event data
      * @return true if the transition can be executed
      */
-    public boolean canTransition(NexumContext<S> context, Object eventData) {
+    public boolean canTransition(NexumContext<S> context, E event, Object eventData) {
         if (guard == null) {
             return true;
         }
@@ -93,7 +93,7 @@ public class Transition<S, E> {
      * @param context The state machine context
      * @param eventData The event data
      */
-    public void executeAction(NexumContext<S> context, Object eventData) {
+    public void executeAction(NexumContext<S> context, E event, Object eventData) {
         if (action != null) {
             action.execute(context, event, eventData);
         }
