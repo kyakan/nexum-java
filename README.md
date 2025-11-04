@@ -7,7 +7,7 @@ A generic and flexible state machine implementation in Java for Android.
 ### 1. Nexum<S, E>
 The main class that manages the state machine. It's generic and can work with any type of state and event.
 
-### 2. NexumContext<S>
+### 2. NexumContext\<S>
 Maintains the current state and provides a key-value store for additional data during transitions.
 
 ### 3. Transition<S, E>
